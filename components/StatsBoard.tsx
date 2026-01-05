@@ -179,12 +179,13 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
         {/* Daily Chart */}
         <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col transition-colors duration-300">
             <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mb-2">Last 7 Days</p>
-            <div className="flex-1 flex items-end justify-between gap-2 h-24">
+            <div className="flex-1 h-24 overflow-x-auto">
+              <div className="flex items-end justify-between gap-2 h-24 min-w-[320px]">
                 {chartData.map((d, i) => {
                     const triedH = (d.data.tried / maxVal) * 100;
                     const successH = (d.data.success / maxVal) * 100;
                     return (
-                        <div key={i} className="flex flex-col items-center gap-1 w-full h-full justify-end group">
+                        <div key={i} className="relative flex flex-col items-center gap-1 flex-1 min-w-[32px] h-full justify-end group">
                              <div className="w-full h-full flex items-end justify-center relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50 transition-colors">
                                  {/* Tried Bar (Background) */}
                                  {d.data.tried > 0 && (
@@ -210,6 +211,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
                         </div>
                     );
                 })}
+              </div>
             </div>
         </div>
     </div>

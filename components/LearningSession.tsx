@@ -177,7 +177,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({ wordItem, definitionD
             <h2 className="text-2xl md:text-3xl font-medium text-slate-900 dark:text-slate-100 leading-relaxed mb-6">
                 {definitionData?.definition}
             </h2>
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border-l-4 border-indigo-500 text-left">
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl text-left">
                 <p className="text-slate-600 dark:text-slate-400 italic text-lg">
                     "{definitionData?.exampleSentence}"
                 </p>
@@ -251,7 +251,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({ wordItem, definitionD
                     <button 
                         type="button"
                         onClick={handleHint}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-indigo-300 transition-colors font-medium text-sm"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-indigo-300 transition-colors font-medium text-sm"
                     >
                         <Lightbulb className="w-4 h-4" /> {hintLevel === 0 ? 'Get Hint' : 'More Hint'}
                     </button>

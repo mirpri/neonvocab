@@ -43,6 +43,25 @@ function App() {
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
 
+    const endSession = useCallback(() => {
+        setIsLearning(false);
+    }, []);
+
+    // End session with Escape
+    useEffect(() => {
+        if (!isLearning) return;
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                endSession();
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isLearning, endSession]);
+
   // Load from local storage on mount
   useEffect(() => {
     const savedWords = localStorage.getItem(STORAGE_KEY_WORDS);
@@ -359,7 +378,7 @@ function App() {
         ) : (
           <div className="flex flex-col items-center justify-center flex-1">
              <div className="w-full mb-4 flex justify-between items-center text-sm text-slate-500 dark:text-white/60">
-                <button onClick={() => setIsLearning(false)} className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
+                     <button onClick={endSession} className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
                     <LogOut className="w-4 h-4" /> End Session
                 </button>
              </div>
@@ -405,7 +424,7 @@ function App() {
                             Share Achievement
                         </button>
                         <button 
-                            onClick={() => setIsLearning(false)}
+                            onClick={endSession}
                             className="px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-xl font-bold transition-colors"
                         >
                             Back to List
@@ -415,7 +434,7 @@ function App() {
              ) : (
                 <div className="text-center">
                     <p className="text-slate-500 dark:text-slate-400">No words available or loading...</p>
-                    <button onClick={() => setIsLearning(false)} className="text-indigo-500 dark:text-indigo-400 underline mt-2">Go back</button>
+                    <button onClick={endSession} className="text-indigo-500 dark:text-indigo-400 underline mt-2">Go back</button>
                 </div>
              )}
           </div>
