@@ -4,7 +4,7 @@ export const config = {
   apiBaseUrl: process.env.VITE_API_BASE_URL || '',
 
   // Provider choice: 'gemini' | 'openai'
-  provider: (process.env.AI_PROVIDER as 'gemini' | 'openai') || 'gemini',
+  provider: (process.env.AI_PROVIDER as 'gemini' | 'openai' | 'proxy') || 'gemini',
 
   // Gemini Configuration
   gemini: {
@@ -16,8 +16,8 @@ export const config = {
 
   // OpenAI / Compatible Configuration
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || 'YOUR_OPENAI_KEY', // Replace with your key
-    baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1', // Change for compatible endpoints (e.g. LocalAI, Groq)
+    apiKey: process.env.OPENAI_API_KEY || '',
+    baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
     model: process.env.OPENAI_MODEL || 'gpt-4o-mini'
   }
 };

@@ -1,8 +1,12 @@
-# VocabMaster AI
+# NeonVocab
 
 A modern, AI-powered vocabulary learning application built with React 19, TypeScript, and Google Gemini. Master new words with an elegant, distraction-free interface featuring dynamic theming and smart progress tracking.
 
-![VocabMaster AI Preview](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
+Experience now on https://mirpri.github.io/neonvocab
+
+Built with the help of
+
+![Google Ai Studio](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
 ## ✨ Features
 

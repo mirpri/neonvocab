@@ -3,7 +3,7 @@ import { WordItem, AppStats, DefinitionResponse, DailyStats } from './types';
 import Importer from './components/Importer';
 import LearningSession from './components/LearningSession';
 import StatsBoard from './components/StatsBoard';
-import { University, Trash2, LogOut, Sun, Moon, PartyPopper } from 'lucide-react';
+import { University, Trash2, LogOut, Sun, Moon, PartyPopper, Github } from 'lucide-react';
 import { fetchWordDefinition } from './services/ai';
 
 const STORAGE_KEY_WORDS = 'vocab-words';
@@ -300,6 +300,14 @@ function App() {
                     aria-label="Toggle Theme"
                 >
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+
+                <button
+                    onClick={() => window.open('https://github.com/mirpri/neonvocab', '_blank')}
+                    className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                    aria-label="Toggle Theme"
+                >
+                    <Github className="w-4 h-4" />
                 </button>
 
                 {words.length > 0 && (
