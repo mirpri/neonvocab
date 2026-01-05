@@ -4,6 +4,8 @@ A modern, AI-powered vocabulary learning application built with React 19, TypeSc
 
 Experience now on https://mirpri.github.io/neonvocab
 
+![Screenshot](res/screenshot1.png)
+
 Built with the help of
 
 ![Google Ai Studio](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)

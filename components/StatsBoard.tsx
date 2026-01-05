@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AppStats, DailyStats, WordItem } from '../types';
 import { Flame, Trophy, Zap, CalendarClock, GraduationCap } from 'lucide-react';
 
@@ -11,22 +11,47 @@ interface StatsBoardProps {
 
 const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLearning }) => {
   const [wpm, setWpm] = useState(0);
+    const samplesRef = useRef<Array<{ t: number; correct: number }>>([]);
+    const correctRef = useRef(stats.sessionWordsCorrect);
+
+    useEffect(() => {
+        correctRef.current = stats.sessionWordsCorrect;
+    }, [stats.sessionWordsCorrect]);
 
   // Velocity Calculation - Only run when learning
   useEffect(() => {
     if (!isLearning) {
         setWpm(0);
+                samplesRef.current = [];
         return;
     }
 
+        samplesRef.current = [];
+
     const interval = setInterval(() => {
-      if (stats.sessionWordsCorrect > 0) {
-        const minutes = (Date.now() - stats.sessionStartTime) / 60000;
-        setWpm(Math.round(stats.sessionWordsCorrect / Math.max(minutes, 0.1)));
-      }
+            const now = Date.now();
+            const correct = correctRef.current ?? 0;
+
+            const samples = samplesRef.current;
+            samples.push({ t: now, correct });
+
+            const cutoff = now - 60_000;
+            while (samples.length > 0 && samples[0].t < cutoff) {
+                samples.shift();
+            }
+
+            if (samples.length < 2) {
+                setWpm(0);
+                return;
+            }
+
+            const oldest = samples[0];
+            const windowMinutes = (now - oldest.t) / 60000;
+            const deltaCorrect = Math.max(0, correct - oldest.correct);
+            setWpm(Math.round(deltaCorrect / Math.max(windowMinutes, 0.1)));
     }, 1000);
     return () => clearInterval(interval);
-  }, [stats.sessionWordsCorrect, stats.sessionStartTime, isLearning]);
+    }, [isLearning]);
 
   // Calculate Day Streak
   const calculateDayStreak = () => {
@@ -88,37 +113,71 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
   const speedBg = wpm > 10 ? 'bg-red-500/20' : (wpm > 5 ? 'bg-orange-500/20' : 'bg-purple-500/20');
   const speedAnimation = wpm > 8 ? 'animate-pulse' : '';
 
+    const streakCard = (
+        <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center gap-3 shadow-lg transition-colors duration-300">
+            <div className="p-2 bg-orange-100 dark:bg-orange-500/20 rounded-lg">
+                <Flame className={`w-6 h-6 text-orange-500 ${displayStreak > 5 ? 'animate-bounce' : ''}`} />
+            </div>
+            <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">{streakLabel}</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{displayStreak}</p>
+            </div>
+        </div>
+    );
+
+    const sessionCard = (
+        <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center gap-3 shadow-lg transition-colors duration-300">
+            <div className="p-2 bg-green-100 dark:bg-green-500/20 rounded-lg">
+                <Trophy className="w-6 h-6 text-green-600 dark:text-green-500" />
+            </div>
+            <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Session</p>
+                <div className="flex items-baseline gap-1">
+                    <p className="text-xl font-bold text-green-600 dark:text-green-400">{stats.sessionWordsCorrect}</p>
+                    <span className="text-slate-500 text-sm">/ {stats.sessionWordsTried}</span>
+                </div>
+            </div>
+        </div>
+    );
+
+    const velocityCard = (
+        <div className={`bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center justify-between shadow-lg relative overflow-hidden transition-all duration-500 ${wpm > 10 ? 'border-red-500/50 shadow-red-900/20' : ''}`}>
+            <div className="flex items-center gap-3 z-10">
+                <div className={`p-2 rounded-lg transition-colors duration-300 ${speedBg}`}>
+                    <Zap className={`w-6 h-6 transition-colors duration-300 ${speedColor} ${speedAnimation}`} />
+                </div>
+                <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Velocity</p>
+                    <p className={`text-2xl font-black italic tracking-tighter transition-all duration-300 ${speedColor}`}>
+                        {wpm} <span className="text-sm font-normal not-italic text-slate-500">wpm</span>
+                    </p>
+                </div>
+            </div>
+            {wpm > 0 && (
+                <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-current to-transparent opacity-10 pointer-events-none" style={{ color: wpm > 10 ? '#ef4444' : '#a855f7' }}></div>
+            )}
+        </div>
+    );
+
+    if (isLearning) {
+        return (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                {streakCard}
+                {sessionCard}
+                {velocityCard}
+            </div>
+        );
+    }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Main Stats Row */}
         <div className="grid grid-cols-2 gap-4">
             {/* Streak */}
-            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center gap-3 shadow-lg transition-colors duration-300">
-                <div className="p-2 bg-orange-100 dark:bg-orange-500/20 rounded-lg">
-                <Flame className={`w-6 h-6 text-orange-500 ${displayStreak > 5 ? 'animate-bounce' : ''}`} />
-                </div>
-                <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">{streakLabel}</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{displayStreak}</p>
-                </div>
-            </div>
+                        {streakCard}
 
             {/* Session vs Total Switcher */}
-            {isLearning ? (
-                // SESSION VIEW
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center gap-3 shadow-lg transition-colors duration-300">
-                    <div className="p-2 bg-green-100 dark:bg-green-500/20 rounded-lg">
-                        <Trophy className="w-6 h-6 text-green-600 dark:text-green-500" />
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Session</p>
-                        <div className="flex items-baseline gap-1">
-                            <p className="text-xl font-bold text-green-600 dark:text-green-400">{stats.sessionWordsCorrect}</p>
-                            <span className="text-slate-500 text-sm">/ {stats.sessionWordsTried}</span>
-                        </div>
-                    </div>
-                </div>
-            ) : (
+            {
                 // TOTAL PROGRESS VIEW
                 <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center gap-3 shadow-lg transition-colors duration-300">
                     <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg">
@@ -132,28 +191,10 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
                         </div>
                     </div>
                 </div>
-            )}
+            }
 
             {/* Speed Meter vs Estimation Switcher */}
-            {isLearning ? (
-                 // VELOCITY METER
-                <div className={`col-span-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center justify-between shadow-lg relative overflow-hidden transition-all duration-500 ${wpm > 10 ? 'border-red-500/50 shadow-red-900/20' : ''}`}>
-                    <div className="flex items-center gap-3 z-10">
-                        <div className={`p-2 rounded-lg transition-colors duration-300 ${speedBg}`}>
-                            <Zap className={`w-6 h-6 transition-colors duration-300 ${speedColor} ${speedAnimation}`} />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Velocity</p>
-                            <p className={`text-2xl font-black italic tracking-tighter transition-all duration-300 ${speedColor}`}>
-                                {wpm} <span className="text-sm font-normal not-italic text-slate-500">wpm</span>
-                            </p>
-                        </div>
-                    </div>
-                    {wpm > 0 && (
-                        <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-current to-transparent opacity-10 pointer-events-none" style={{ color: wpm > 10 ? '#ef4444' : '#a855f7' }}></div>
-                    )}
-                </div>
-            ) : (
+            {
                 // ESTIMATION CARD
                 <div className="col-span-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 flex items-center gap-3 shadow-lg transition-colors duration-300">
                      <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
@@ -175,7 +216,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
                          )}
                      </div>
                 </div>
-            )}
+            }
         </div>
 
         {/* Daily Chart */}

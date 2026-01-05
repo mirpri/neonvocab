@@ -2,6 +2,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DefinitionResponse } from "../types";
 import { config } from "../config";
 
+const definitionMemoryCache = new Map<string, DefinitionResponse>();
+const definitionInFlight = new Map<string, Promise<DefinitionResponse>>();
+
 // --- GEMINI IMPLEMENTATION ---
 const fetchGeminiDefinition = async (
   word: string
@@ -123,23 +126,45 @@ const fetchProxyDefinition = async (
 export const fetchWordDefinition = async (
   word: string
 ): Promise<DefinitionResponse> => {
-  try {
-    if (config.provider === "openai") {
-      console.log("Using OpenAI for definition");
-      return await fetchOpenAIDefinition(word);
-    } else if (config.provider === "proxy") {
-      console.log("Using proxy backend for definition:", config.apiBaseUrl);
-      return await fetchProxyDefinition(word);
-    } else {
-      console.log("Using Gemini for definition");
-      return await fetchGeminiDefinition(word);
+  const rawWord = word.trim();
+  const cacheKey = rawWord.toLowerCase();
+
+  const cached = definitionMemoryCache.get(cacheKey);
+  if (cached) return cached;
+
+  const inFlight = definitionInFlight.get(cacheKey);
+  if (inFlight) return inFlight;
+
+  const requestPromise = (async (): Promise<DefinitionResponse> => {
+    try {
+      let result: DefinitionResponse;
+      if (config.provider === "openai") {
+        console.log("Using OpenAI for definition");
+        result = await fetchOpenAIDefinition(rawWord);
+      } else if (config.provider === "proxy") {
+        console.log("Using proxy backend for definition:", config.apiBaseUrl);
+        result = await fetchProxyDefinition(rawWord);
+      } else {
+        console.log("Using Gemini for definition");
+        result = await fetchGeminiDefinition(rawWord);
+      }
+
+      definitionMemoryCache.set(cacheKey, result);
+      return result;
+    } catch (error) {
+      console.error("Error fetching definition:", error);
+      const fallback: DefinitionResponse = {
+        definition: "Definition unavailable. Check network or API config.",
+        partOfSpeech: "unknown",
+        exampleSentence: "...",
+      };
+      definitionMemoryCache.set(cacheKey, fallback);
+      return fallback;
+    } finally {
+      definitionInFlight.delete(cacheKey);
     }
-  } catch (error) {
-    console.error("Error fetching definition:", error);
-    return {
-      definition: "Definition unavailable. Check network or API config.",
-      partOfSpeech: "unknown",
-      exampleSentence: "...",
-    };
-  }
+  })();
+
+  definitionInFlight.set(cacheKey, requestPromise);
+  return requestPromise;
 };
