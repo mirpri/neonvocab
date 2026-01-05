@@ -76,10 +76,10 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
     const allDays: DailyStats[] = Object.values(dailyStats as Record<string, DailyStats>);
     const activeDaysCount = allDays.filter(d => (d.tried ?? 0) > 0).length;
     const allTimeSuccessSum = allDays.reduce((acc, curr) => acc + (curr.success ?? 0), 0);
-    const avgDailySuccess = activeDaysCount > 0 ? allTimeSuccessSum / activeDaysCount : 0;
+    const avgDailySuccess = activeDaysCount > 0 ? allTimeSuccessSum / activeDaysCount / 3 : 0;
   
   const estimatedDays = avgDailySuccess > 0 
-    ? Math.ceil(remainingCount / avgDailySuccess * 3) 
+    ? Math.ceil(remainingCount / avgDailySuccess) 
     : null;
 
   // Speed Meter Styles

@@ -123,7 +123,9 @@ function App() {
     
     // Check if we need to fill the queue
     if (wordQueue.length < PRELOAD_BUFFER_SIZE && words.length > 0) {
-        const candidates = words.filter(w => !w.isMastered);
+                const currentId = currentWordIndex !== null ? words[currentWordIndex]?.id : null;
+                const unmastered = words.filter(w => !w.isMastered);
+                const candidates = currentId && unmastered.length > 1 ? unmastered.filter(w => w.id !== currentId) : unmastered;
         
         // Only fill queue if there are unmastered candidates
         if (candidates.length > 0) {
@@ -200,11 +202,15 @@ function App() {
     pickNextWord(true); 
   };
 
-  const pickNextWord = useCallback((isInitial = false) => {
+    const pickNextWord = useCallback((isInitial = false) => {
     setSessionKey(prev => prev + 1);
     setWordQueue(prevQueue => {
         let nextIndex: number | null = null;
         let newQueue = [...prevQueue];
+                const avoidIndex = !isInitial ? currentWordIndex : null;
+                const hasAlternative = avoidIndex !== null
+                    ? words.some((w, idx) => idx !== avoidIndex && w && !w.isMastered)
+                    : false;
 
         // Try to get a valid word from the queue
         while (newQueue.length > 0) {
@@ -213,6 +219,9 @@ function App() {
             
             // Check if this word is still valid (not mastered)
             if (words[candidateIndex] && !words[candidateIndex].isMastered) {
+                if (hasAlternative && avoidIndex !== null && candidateIndex === avoidIndex) {
+                    continue;
+                }
                 nextIndex = candidateIndex;
                 break;
             }
@@ -220,14 +229,19 @@ function App() {
 
         // If queue didn't provide a valid word, pick one randomly
         if (nextIndex === null) {
-            const candidates = words.filter(w => !w.isMastered);
+            const allCandidates = words.filter(w => !w.isMastered);
             
-            if (candidates.length === 0) {
+            if (allCandidates.length === 0) {
                 // All words mastered!
                 setIsSessionComplete(true);
                 setCurrentWordIndex(null); // Clear current word
                 return [];
             }
+
+            const currentId = avoidIndex !== null ? words[avoidIndex]?.id : null;
+            const candidates = currentId && allCandidates.length > 1
+              ? allCandidates.filter(w => w.id !== currentId)
+              : allCandidates;
 
             const randomWord = candidates[Math.floor(Math.random() * candidates.length)];
             nextIndex = words.findIndex(w => w.id === randomWord.id);
@@ -236,7 +250,7 @@ function App() {
         setCurrentWordIndex(nextIndex);
         return newQueue;
     });
-  }, [words]);
+    }, [words, currentWordIndex]);
 
 
   const handleResult = (success: boolean, resetStreak: boolean, resetWordProgress: boolean = true) => {

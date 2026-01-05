@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, Save } from 'lucide-react';
+import highschoolPreset from '../wordlists/Highschool.txt?raw';
+import toeflPreset from '../wordlists/TOEFL.txt?raw';
+import cetPreset from '../wordlists/CET.txt?raw';
 
 interface ImporterProps {
   onImport: (text: string) => void;
@@ -26,6 +29,30 @@ const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords }) => {
       <p className="text-slate-500 dark:text-slate-400 mb-4">
         Paste a list of words separated by commas, newlines, or spaces. We'll handle the rest.
       </p>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => onImport(highschoolPreset)}
+          className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold text-sm transition-colors"
+        >
+          Import Highschool
+        </button>
+        <button
+          type="button"
+          onClick={() => onImport(cetPreset)}
+          className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold text-sm transition-colors"
+        >
+          Import CET-6
+        </button>
+        <button
+          type="button"
+          onClick={() => onImport(toeflPreset)}
+          className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold text-sm transition-colors"
+        >
+          Import TOEFL
+        </button>
+      </div>
       
       <textarea
         className="w-full h-40 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none font-mono text-sm mb-4"
