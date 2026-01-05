@@ -1,5 +1,8 @@
 
 export const config = {
+  // Optional: Custom Backend URL (overrides provider choice if set)
+  apiBaseUrl: process.env.VITE_API_BASE_URL || '',
+
   // Provider choice: 'gemini' | 'openai'
   provider: (process.env.AI_PROVIDER as 'gemini' | 'openai') || 'gemini',
 

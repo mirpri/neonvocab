@@ -5,5 +5,3 @@ OPENAI_BASE_URL=your_openai_base_url_here
 OPENAI_MODEL=deepseek/deepseek-v3.2
 
 AI_PROVIDER=openai
-
-VITE_API_BASE_URL=http://localhost:3000

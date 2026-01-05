@@ -79,9 +79,38 @@ const fetchOpenAIDefinition = async (word: string): Promise<DefinitionResponse> 
     }
 }
 
+// --- PROXY / CUSTOM BACKEND IMPLEMENTATION ---
+const fetchProxyDefinition = async (word: string): Promise<DefinitionResponse> => {
+    try {
+        // Expects a backend that accepts { word: string } and returns DefinitionResponse
+        const response = await fetch(`${config.apiBaseUrl}/definition?word=${encodeURIComponent(word)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+             throw new Error(`Backend API Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data as DefinitionResponse;
+    } catch (error) {
+        console.error("Proxy API Error:", error);
+        throw error;
+    }
+}
+
 // --- MAIN EXPORT ---
 export const fetchWordDefinition = async (word: string): Promise<DefinitionResponse> => {
   try {
+      // Priority 1: Custom Backend
+      if (config.apiBaseUrl) {
+          return await fetchProxyDefinition(word);
+      }
+
+      // Priority 2: Direct API Providers
       if (config.provider === 'openai') {
           return await fetchOpenAIDefinition(word);
       } else {

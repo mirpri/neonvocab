@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
     return {
       base: './',
       server: {
-        port: 3000,
+        port: 5173,
         host: '0.0.0.0',
       },
       plugins: [react()],
@@ -17,7 +17,8 @@ export default defineConfig(({ mode }) => {
         'process.env.OPENAI_API_KEY': JSON.stringify(env.OPENAI_API_KEY),
         'process.env.OPENAI_BASE_URL': JSON.stringify(env.OPENAI_BASE_URL),
         'process.env.OPENAI_MODEL': JSON.stringify(env.OPENAI_MODEL),
-        'process.env.AI_PROVIDER': JSON.stringify(env.AI_PROVIDER)
+        'process.env.AI_PROVIDER': JSON.stringify(env.AI_PROVIDER),
+        'process.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL)
       },
       resolve: {
         alias: {

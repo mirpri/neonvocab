@@ -57,7 +57,17 @@ A modern, AI-powered vocabulary learning application built with React 19, TypeSc
    ```
 
 3. **Configure Environment**
-   Create a `.env` file in the root directory according to `.env copy`
+   Create a `.env` file in the root directory. You have two options for configuration:
+
+   **Option A: Serverless / Static Site**
+   Do not set `VITE_API_BASE_URL` and setup openai ***or*** gemini key and model.
+
+   **Option B: Secure Backend (Recommended for Production)**
+   *Use this if you are running the provided Node.js backend.*
+   ```env
+   # The frontend will ignore local keys and ask this URL instead
+   VITE_API_BASE_URL=https://your-backend-url.com
+   ```
 
 4. **Run the development server**
    ```bash
@@ -69,7 +79,22 @@ A modern, AI-powered vocabulary learning application built with React 19, TypeSc
 5. **Open your browser**
    Navigate to `http://localhost:5173` to start learning!
 
-## 📖 Usage
+## Backend Setup (Optional)
+
+To protect your API keys, you can run the included Node.js backend.
+
+1.  **Navigate to backend folder**: `cd backend`
+2.  **Install dependencies**: `npm install`
+3.  **Create .env**:
+    ```env
+    GEMINI_API_KEY=your_secret_key
+    FRONTEND_URL=https://your-github-pages-url.github.io
+    PORT=3000
+    ```
+4.  **Start Server**: `npm start`
+5.  **Update Frontend**: Set `VITE_API_BASE_URL=http://localhost:3000` (or your production URL) in the frontend `.env`.
+
+## Usage
 
 1. **Add Words**: Click the "Import" section to paste a list of words you want to learn.
 2. **Start Session**: Click "Start Learning" to begin.
