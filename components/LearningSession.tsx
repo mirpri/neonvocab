@@ -50,9 +50,14 @@ const LearningSession: React.FC<LearningSessionProps> = ({ wordItem, definitionD
       setState(GameState.SUCCESS);
       
       // Success Logic:
-      // If hint steps < 2 (meaning 0 or 1 - no letters revealed), treat as success.
-      // Mistakes (wrong tries) do not invalidate success if hints are low.
-      const isSuccess = hintLevel <= 2;
+      // Counts as success based on current progress (x = successCount):
+      // success if hintLevel < max(0, 4 - x)
+      // Examples:
+      // x=0 -> allow hintLevel 0..3
+      // x=1 -> allow hintLevel 0..2
+      // x=2 -> allow hintLevel 0..1
+      const maxHintLevelExclusive = Math.max(0, 4 - (wordItem.successCount ?? 0));
+      const isSuccess = hintLevel < maxHintLevelExclusive;
       
       if (isSuccess) {
           // Success! Increment count, don't reset streak.
@@ -155,6 +160,10 @@ const LearningSession: React.FC<LearningSessionProps> = ({ wordItem, definitionD
       cardStyle += " animate-shake border-red-500";
   }
 
+  const maxHintLevelExclusive = Math.max(0, 4 - (wordItem.successCount ?? 0));
+  const willIncrementOnCorrect = hintLevel < maxHintLevelExclusive;
+  const showNoIncrementNote = state === GameState.SUCCESS && !willIncrementOnCorrect;
+
   return (
     <div className="w-full max-w-2xl mx-auto relative px-4">
       <div className={cardStyle}>
@@ -229,13 +238,6 @@ const LearningSession: React.FC<LearningSessionProps> = ({ wordItem, definitionD
                 <h3 className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mb-4 tracking-wider">{wordItem.word}</h3>
             </div>
         )}
-        
-        {state === GameState.SUCCESS && (
-            <div className="mt-6 text-center animate-pop">
-                <p className="text-green-600 dark:text-green-400 font-bold text-xl">Correct!</p>
-                {mistakes > 0 && <p className="text-xs text-red-500 dark:text-red-400 mt-2">Mistakes made: Progress reset.</p>}
-            </div>
-        )}
 
         {/* Controls */}
         <div className="mt-8 flex flex-wrap gap-4 justify-center">
@@ -259,13 +261,20 @@ const LearningSession: React.FC<LearningSessionProps> = ({ wordItem, definitionD
             )}
 
             {(state === GameState.SUCCESS || state === GameState.SHOWING_ANSWER) && (
+              <div className="flex flex-col items-center gap-5">
+                {showNoIncrementNote && (
+                  <p className="text-xs text-slate-500 dark:text-white/50">
+                    Too many hints, progress won't be counted.
+                  </p>
+                )}
                 <button 
-                    onClick={onNext}
-                    autoFocus
-                    className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
+                  onClick={onNext}
+                  autoFocus
+                  className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
                 >
-                    {state === GameState.SUCCESS ? 'Next Word' : 'Continue'} <ArrowRight className="w-5 h-5" />
+                  {state === GameState.SUCCESS ? 'Next Word' : 'Continue'} <ArrowRight className="w-5 h-5" />
                 </button>
+              </div>
             )}
         </div>
 

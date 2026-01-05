@@ -72,12 +72,14 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
   const masteredCount = words.filter(w => w.isMastered).length;
   const remainingCount = words.length - masteredCount;
 
-  // Calculate average daily success over the last 7 days
-  const last7DaysSuccessSum = chartData.reduce((acc, curr) => acc + curr.data.success, 0);
-  const avgDailySuccess = last7DaysSuccessSum > 0 ? last7DaysSuccessSum / 7 : 0;
+    // Calculate average daily success over ALL recorded days
+    const allDays: DailyStats[] = Object.values(dailyStats as Record<string, DailyStats>);
+    const activeDaysCount = allDays.filter(d => (d.tried ?? 0) > 0).length;
+    const allTimeSuccessSum = allDays.reduce((acc, curr) => acc + (curr.success ?? 0), 0);
+    const avgDailySuccess = activeDaysCount > 0 ? allTimeSuccessSum / activeDaysCount : 0;
   
   const estimatedDays = avgDailySuccess > 0 
-    ? Math.ceil(remainingCount / avgDailySuccess) 
+    ? Math.ceil(remainingCount / avgDailySuccess * 3) 
     : null;
 
   // Speed Meter Styles

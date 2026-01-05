@@ -14,6 +14,7 @@ const PRELOAD_BUFFER_SIZE = 3;
 
 function App() {
   const [words, setWords] = useState<WordItem[]>([]);
+    const [wordSort, setWordSort] = useState<'alpha' | 'correct'>('alpha');
   const [currentWordIndex, setCurrentWordIndex] = useState<number | null>(null);
   const [isLearning, setIsLearning] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -298,6 +299,30 @@ function App() {
   }
 
   const currentWord = currentWordIndex !== null ? words[currentWordIndex] : null;
+    const displayedWords = React.useMemo(() => {
+        const copy = [...words];
+        if (wordSort === 'correct') {
+            copy.sort((a, b) => {
+                const diff = (b.successCount ?? 0) - (a.successCount ?? 0);
+                if (diff !== 0) return diff;
+                return a.word.localeCompare(b.word);
+            });
+            return copy;
+        }
+
+        copy.sort((a, b) => a.word.localeCompare(b.word));
+        return copy;
+    }, [words, wordSort]);
+
+    const handleRemoveWord = useCallback((wordId: string, wordText: string) => {
+        setWords(prev => prev.filter(w => w.id !== wordId));
+        setDefinitionCache(prev => {
+            if (!prev[wordText]) return prev;
+            const copy = { ...prev };
+            delete copy[wordText];
+            return copy;
+        });
+    }, []);
 
   return (
     <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-x-hidden transition-colors duration-300">
@@ -359,10 +384,50 @@ function App() {
             
             {words.length > 0 && (
                 <div className="mt-12 bg-white/50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-white/10 backdrop-blur-sm flex flex-col max-h-[60vh] transition-colors duration-300">
-                    <h3 className="text-slate-500 dark:text-white/70 font-bold mb-4 uppercase text-sm tracking-wider flex-shrink-0">Your Word List ({words.length})</h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 flex-shrink-0">
+                        <h3 className="text-slate-500 dark:text-white/70 font-bold uppercase text-sm tracking-wider">Your Word List ({words.length})</h3>
+                        <div className="inline-flex rounded-xl bg-slate-100 dark:bg-white/5 p-1 border border-slate-200 dark:border-white/10">
+                            <button
+                                type="button"
+                                onClick={() => setWordSort('alpha')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${wordSort === 'alpha'
+                                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow'
+                                    : 'text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                                aria-pressed={wordSort === 'alpha'}
+                            >
+                                Alphabet
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setWordSort('correct')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${wordSort === 'correct'
+                                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow'
+                                    : 'text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                                aria-pressed={wordSort === 'correct'}
+                            >
+                                Times Correct
+                            </button>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-y-auto pr-2 custom-scrollbar">
-                        {words.map(w => (
-                            <div key={w.id} className={`p-3 rounded-lg border transition-all ${w.isMastered ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400' : 'border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/5 text-slate-700 dark:text-slate-300'} text-center text-sm font-medium`}>
+                        {displayedWords.map(w => (
+                            <div key={w.id} className={`relative p-3 rounded-lg border transition-all ${w.isMastered ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400' : 'border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/5 text-slate-700 dark:text-slate-300'} text-center text-sm font-medium`}>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleRemoveWord(w.id, w.word);
+                                    }}
+                                    className="absolute top-2 right-2 p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                    aria-label={`Remove ${w.word}`}
+                                    title="Remove"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+
                                 {w.word}
                                 <div className="flex justify-center gap-1 mt-2 h-1">
                                     {[...Array(3)].map((_, i) => (
