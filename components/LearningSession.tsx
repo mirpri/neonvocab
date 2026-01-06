@@ -23,12 +23,14 @@ const LearningSession: React.FC<LearningSessionProps> = ({
   const [state, setState] = useState<GameState>(GameState.LOADING_DEFINITION);
   const [hintLevel, setHintLevel] = useState(0); // 0: None, 1: Length, 2+: Letters
   const [isShaking, setIsShaking] = useState(false);
+  const [isInputShaking, setIsInputShaking] = useState(false);
   const [mistakes, setMistakes] = useState(0);
   const [wasCounted, setWasCounted] = useState<boolean | null>(null);
   const [containerWidthClass, setContainerWidthClass] = useState<
     "max-w-2xl" | "max-w-3xl"
   >("max-w-2xl");
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastInputTime = useRef<number>(0);
 
   // Initialize state based on definition availability
   useEffect(() => {
@@ -156,9 +158,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({
     const length = word.length;
 
     if (hintLevel === 1) {
-      // Show length placeholder
-      const placeholder = Array(length).fill("_").join(" ");
-      return `${placeholder} (${length} letters)`;
+      return `${length} letters`;
     }
 
     // hintLevel 2 -> 1 letter revealed
@@ -209,7 +209,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({
   }
   return (
     <div
-      className={`w-full ${containerWidthClass} mx-auto relative px-4 transition-all duration-200`}
+      className={`w-full ${containerWidthClass} mx-auto relative px-4 transition-all duration-200 animate-pop`}
     >
       <div className={cardStyle}>
         {/* Progress Dots */}
@@ -247,12 +247,27 @@ const LearningSession: React.FC<LearningSessionProps> = ({
             ref={inputRef}
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              const now = Date.now();
+              const wasEmpty = input.length === 0;
+              const timeSinceLastInput = now - lastInputTime.current;
+              
+              setInput(e.target.value);
+              
+              if (e.target.value.length > input.length) {
+                if (wasEmpty || timeSinceLastInput >= 500) {
+                  setIsInputShaking(true);
+                  setTimeout(() => setIsInputShaking(false), 100);
+                }
+                lastInputTime.current = now;
+              }
+            }}
             disabled={
               state === GameState.SUCCESS || state === GameState.SHOWING_ANSWER
             }
             placeholder="Type the word"
             className={`w-full bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl p-5 text-center text-2xl font-bold tracking-wide outline-none transition-all
+              ${isInputShaking ? "animate-shake-vertical" : ""}
               ${
                 state === GameState.SUCCESS
                   ? showNoIncrementNote

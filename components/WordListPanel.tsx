@@ -75,7 +75,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
               onClick={() => onChangeSort("alpha")}
               className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wider transition-colors ${
                 wordSort === "alpha"
-                  ? "bg-white/60 dark:bg-slate-800/60 text-slate-700 dark:text-white shadow"
+                  ? "bg-white dark:bg-slate-800/60 text-slate-700 dark:text-white shadow"
                   : "text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
               }`}
               aria-pressed={wordSort === "alpha"}
@@ -87,7 +87,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
               onClick={() => onChangeSort("correct")}
               className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wider transition-colors ${
                 wordSort === "correct"
-                  ? "bg-white dark:bg-slate-800 text-slate-700 dark:text-white shadow"
+                  ? "bg-white dark:bg-slate-800/60 text-slate-700 dark:text-white shadow"
                   : "text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
               }`}
               aria-pressed={wordSort === "correct"}
@@ -117,7 +117,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
               <div
                 role="listbox"
                 aria-label="Wordlists"
-                className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg overflow-hidden z-50"
+                className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-lg overflow-hidden z-50"
               >
                 <div className="max-h-72 overflow-y-auto custom-scrollbar">
                   {wordlists.map((wl) => {
@@ -193,7 +193,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
               className={`relative p-3 rounded-lg border transition-all ${
                 w.isMastered
                   ? "border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400"
-                  : "border-slate-200 dark:border-white/5 bg-white/25 dark:bg-white/5 backdrop-blur-sm text-slate-700 dark:text-slate-300"
+                  : "border-slate-200 dark:border-white/5 bg-white/25 dark:bg-white/5 text-slate-700 dark:text-slate-300"
               } text-center text-sm font-medium`}
             >
               <button

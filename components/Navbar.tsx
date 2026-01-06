@@ -63,7 +63,7 @@ const NavBar: React.FC<NavBarProps> = ({
             </button>
 
             {backgroundEnabled && (
-              <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute right-0 top-full mt-2 w-[18rem]">
+              <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute right-0 top-full mt-0.5 w-[18rem]">
                 <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg p-2">
                   <div className="flex items-stretch gap-2">
                     <input
@@ -88,9 +88,6 @@ const NavBar: React.FC<NavBarProps> = ({
                       <Shuffle className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="mt-1 text-[11px] leading-snug text-slate-500 dark:text-white/40 px-1">
-                    When enabled: uses Bing daily image unless a URL is set.
-                  </p>
                 </div>
               </div>
             )}

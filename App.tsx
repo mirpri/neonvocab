@@ -276,12 +276,14 @@ function App() {
         />
 
         {!isLearning ? (
-          <div className="animate-pop">
-            <Importer
-              onImport={handleImport}
-              onStart={startLearning}
-              hasWords={words.length > 0}
-            />
+          <>
+            <div className="animate-pop">
+              <Importer
+                onImport={handleImport}
+                onStart={startLearning}
+                hasWords={words.length > 0}
+              />
+            </div>
 
             <WordListPanel
               activeWordlistName={activeWordlist?.name ?? "Your Word List"}
@@ -297,7 +299,7 @@ function App() {
               onDeleteWordlist={handleDeleteWordlist}
               onRemoveWord={handleRemoveWord}
             />
-          </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center flex-1">
             <div className="w-full mb-4 flex justify-between items-center text-sm text-slate-500 dark:text-white/60">
