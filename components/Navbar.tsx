@@ -29,6 +29,9 @@ const NavBar: React.FC<NavBarProps> = ({
   onResetData,
   hasWords,
 }) => {
+  const iconButtonTone =
+    "rounded-lg bg-slate-100/60 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border border-transparent";
+
   return (
     <header className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 dark:border-white/10 transition-colors duration-300">
       <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -41,7 +44,7 @@ const NavBar: React.FC<NavBarProps> = ({
         <div className="flex items-center gap-4">
           <button
             onClick={onToggleTheme}
-            className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+            className={`p-2 ${iconButtonTone}`}
             aria-label="Toggle Theme"
           >
             {theme === "dark" ? (
@@ -54,7 +57,7 @@ const NavBar: React.FC<NavBarProps> = ({
           <div className="relative group">
             <button
               onClick={onToggleBackground}
-              className={`p-2 rounded-lg border transition-colors bg-slate-100 dark:bg-white/5 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10`}
+              className={`p-2 ${iconButtonTone}`}
               aria-label="Toggle background image"
               title="Background image"
               type="button"
@@ -81,7 +84,7 @@ const NavBar: React.FC<NavBarProps> = ({
                           `https://bing.img.run/rand.php?ts=${Date.now()}`
                         );
                       }}
-                      className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                      className={`px-3 py-2 ${iconButtonTone}`}
                       aria-label="Use random Bing wallpaper"
                       title="Random"
                     >
@@ -97,7 +100,7 @@ const NavBar: React.FC<NavBarProps> = ({
             onClick={() =>
               window.open("https://github.com/mirpri/neonvocab", "_blank")
             }
-            className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+            className={`p-2 ${iconButtonTone}`}
             aria-label="Open GitHub"
           >
             <Github className="w-4 h-4" />

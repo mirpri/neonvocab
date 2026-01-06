@@ -109,7 +109,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
 
   // Speed Meter Styles
   const speedColor = wpm > 10 ? 'text-red-500' : (wpm > 5 ? 'text-orange-400' : 'text-purple-400');
-  const speedBg = wpm > 10 ? 'bg-red-500/20' : (wpm > 5 ? 'bg-orange-500/20' : 'bg-purple-500/20');
+  const speedBg = wpm > 10 ? 'bg-red-100 dark:bg-red-500/20' : (wpm > 5 ? 'bg-orange-100 dark:bg-orange-500/20' : 'bg-purple-100 dark:bg-purple-500/20');
   const speedAnimation = wpm > 8 ? 'animate-pulse' : '';
 
     const streakCard = (

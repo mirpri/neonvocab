@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Save } from 'lucide-react';
+import { Plus, Save, RefreshCcw } from 'lucide-react';
 import highschoolPreset from '../wordlists/Highschool.txt?raw';
 import toeflPreset from '../wordlists/TOEFL.txt?raw';
 import cetPreset from '../wordlists/CET.txt?raw';
@@ -8,9 +8,10 @@ interface ImporterProps {
   onImport: (text: string) => void;
   onStart: () => void;
   hasWords: boolean;
+  onFlip?: () => void;
 }
 
-const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords }) => {
+const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords, onFlip }) => {
   const [text, setText] = useState('');
 
   const handleImport = () => {
@@ -21,7 +22,18 @@ const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl max-w-2xl mx-auto mt-10 transition-colors duration-300">
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl max-w-2xl mx-auto mt-10 transition-colors duration-300 relative">
+      {hasWords && onFlip && (
+        <button
+          type="button"
+          onClick={onFlip}
+          className="absolute right-3 top-3 p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+          aria-label="Flip back"
+          title="Flip back to continue learning"
+        >
+          <RefreshCcw className="w-4 h-4" />
+        </button>
+      )}
       <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
         <Plus className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
         Add Words to Learn

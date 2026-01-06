@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import type { WordItem, WordList, DefinitionResponse } from "./types";
 import Importer from "./components/Importer";
+import ContinueCard from "./components/ContinueCard";
 import LearningSession from "./components/LearningSession";
 import StatsBoard from "./components/StatsBoard";
 import NavBar from "./components/Navbar";
@@ -9,6 +10,77 @@ import FinishPage from "./components/FinishPage";
 import { Trash2, LogOut } from "lucide-react";
 import { fetchWordDefinition } from "./services/ai";
 import { useVocabStore, selectActiveWordlist } from "./store/vocabStore";
+
+const FLIP_DURATION_MS = 600;
+
+function Flipper({
+  showBack,
+  front,
+  back,
+}: {
+  showBack: boolean;
+  front: React.ReactNode;
+  back: React.ReactNode;
+}) {
+  const [height, setHeight] = useState<number | undefined>(undefined);
+  const frontRef = React.useRef<HTMLDivElement>(null);
+  const backRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const target = showBack ? backRef.current : frontRef.current;
+    if (!target) return;
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setHeight(entry.contentRect.height);
+      }
+    });
+
+    ro.observe(target);
+    return () => ro.disconnect();
+  }, [showBack]);
+
+  return (
+    <div className="relative w-full" style={{ perspective: "1000px" }}>
+      <div
+        className="relative transition-[transform,height] ease-in-out"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: showBack ? "rotateY(180deg)" : "rotateY(0deg)",
+          height: height ? `${height}px` : "auto",
+          transitionDuration: `${FLIP_DURATION_MS}ms`,
+        }}
+      >
+        {/* Front */}
+        <div
+          ref={frontRef}
+          className="absolute top-0 left-0 w-full"
+          style={{
+            backfaceVisibility: "hidden",
+            pointerEvents: showBack ? "none" : "auto",
+          }}
+          aria-hidden={showBack}
+        >
+          {front}
+        </div>
+
+        {/* Back */}
+        <div
+          ref={backRef}
+          className="absolute top-0 left-0 w-full"
+          style={{
+            transform: "rotateY(180deg)",
+            backfaceVisibility: "hidden",
+            pointerEvents: showBack ? "auto" : "none",
+          }}
+          aria-hidden={!showBack}
+        >
+          {back}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STORAGE_KEY_THEME = "vocab-theme";
 const STORAGE_KEY_BG_ENABLED = "vocab-bg-enabled";
@@ -77,9 +149,9 @@ function App() {
       return "";
     }
   });
-  const [resolvedBackgroundUrl, setResolvedBackgroundUrl] = useState<string>(
-    ""
-  );
+  const [resolvedBackgroundUrl, setResolvedBackgroundUrl] =
+    useState<string>("");
+  const [showImporter, setShowImporter] = useState<boolean>(false);
 
   // (vocab state now lives in Zustand)
 
@@ -209,7 +281,9 @@ function App() {
       }
       return;
     }
-    if (window.confirm(`Delete wordlist "${currentName}"? This cannot be undone.`)) {
+    if (
+      window.confirm(`Delete wordlist "${currentName}"? This cannot be undone.`)
+    ) {
       deleteActiveWordlist();
     }
   };
@@ -225,7 +299,9 @@ function App() {
   };
 
   const handleDeleteAll = () => {
-    if (window.confirm("Are you sure you want to delete all words and progress?")) {
+    if (
+      window.confirm("Are you sure you want to delete all words and progress?")
+    ) {
       resetAllData();
     }
   };
@@ -277,13 +353,29 @@ function App() {
 
         {!isLearning ? (
           <>
-            <div className="animate-pop">
-              <Importer
-                onImport={handleImport}
-                onStart={startLearning}
-                hasWords={words.length > 0}
-              />
-            </div>
+            {(() => {
+              const showingImporter = words.length === 0 ? true : showImporter;
+              return (
+                <Flipper
+                  showBack={showingImporter}
+                  front={
+                    <ContinueCard
+                      words={words}
+                      onStart={startLearning}
+                      onFlip={() => setShowImporter(true)}
+                    />
+                  }
+                  back={
+                    <Importer
+                      onImport={handleImport}
+                      onStart={startLearning}
+                      hasWords={words.length > 0}
+                      onFlip={() => setShowImporter(false)}
+                    />
+                  }
+                />
+              );
+            })()}
 
             <WordListPanel
               activeWordlistName={activeWordlist?.name ?? "Your Word List"}
@@ -316,7 +408,7 @@ function App() {
                 wordItem={currentWord}
                 definitionData={definitionCache[currentWord.word]}
                 onResult={handleResult}
-                  onNext={() => pickNextWord(false)}
+                onNext={() => pickNextWord(false)}
               />
             ) : isSessionComplete ? (
               <FinishPage
@@ -340,9 +432,9 @@ function App() {
             )}
           </div>
         )}
-      <footer className="my-6 text-center text-slate-400 dark:text-white/30 text-sm relative transition-colors duration-300">
-        <p>Powered by AI &copy; 2026 Mirpri</p>
-      </footer>
+        <footer className="my-6 text-center text-slate-400 dark:text-white/30 text-sm relative transition-colors duration-300">
+          <p>Powered by AI &copy; 2026 Mirpri</p>
+        </footer>
       </main>
     </div>
   );

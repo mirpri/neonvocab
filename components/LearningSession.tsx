@@ -23,14 +23,12 @@ const LearningSession: React.FC<LearningSessionProps> = ({
   const [state, setState] = useState<GameState>(GameState.LOADING_DEFINITION);
   const [hintLevel, setHintLevel] = useState(0); // 0: None, 1: Length, 2+: Letters
   const [isShaking, setIsShaking] = useState(false);
-  const [isInputShaking, setIsInputShaking] = useState(false);
   const [mistakes, setMistakes] = useState(0);
   const [wasCounted, setWasCounted] = useState<boolean | null>(null);
   const [containerWidthClass, setContainerWidthClass] = useState<
     "max-w-2xl" | "max-w-3xl"
   >("max-w-2xl");
   const inputRef = useRef<HTMLInputElement>(null);
-  const lastInputTime = useRef<number>(0);
 
   // Initialize state based on definition availability
   useEffect(() => {
@@ -248,26 +246,13 @@ const LearningSession: React.FC<LearningSessionProps> = ({
             type="text"
             value={input}
             onChange={(e) => {
-              const now = Date.now();
-              const wasEmpty = input.length === 0;
-              const timeSinceLastInput = now - lastInputTime.current;
-              
               setInput(e.target.value);
-              
-              if (e.target.value.length > input.length) {
-                if (wasEmpty || timeSinceLastInput >= 500) {
-                  setIsInputShaking(true);
-                  setTimeout(() => setIsInputShaking(false), 100);
-                }
-                lastInputTime.current = now;
-              }
             }}
             disabled={
               state === GameState.SUCCESS || state === GameState.SHOWING_ANSWER
             }
             placeholder="Type the word"
             className={`w-full bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl p-5 text-center text-2xl font-bold tracking-wide outline-none transition-all
-              ${isInputShaking ? "animate-shake-vertical" : ""}
               ${
                 state === GameState.SUCCESS
                   ? showNoIncrementNote

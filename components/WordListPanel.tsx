@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, Pencil, ListPlus, X, ChevronDown, Check } from "lucide-react";
+import { Trash2, Pencil, ListPlus, X, ChevronDown, Check, Search } from "lucide-react";
 import type { WordItem, WordList } from "../types";
 
 interface WordListPanelProps {
@@ -34,11 +34,21 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
   onRemoveWord,
 }) => {
   const [isWordlistMenuOpen, setIsWordlistMenuOpen] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
   const wordlistMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const iconButtonTone =
+    "p-2 rounded-lg bg-slate-100/60 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border border-slate-200/50 dark:border-white/10";
   const activeWordlist = React.useMemo(
     () => wordlists.find((wl) => wl.id === activeWordlistId) ?? null,
     [wordlists, activeWordlistId]
   );
+
+  const filteredWords = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return displayedWords;
+    return displayedWords.filter((w) => w.word.toLowerCase().startsWith(q));
+  }, [displayedWords, search]);
 
   React.useEffect(() => {
     if (!isWordlistMenuOpen) return;
@@ -69,7 +79,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
             {activeWordlistName} ({words.length})
           </h3>
 
-          <div className="inline-flex rounded-lg bg-slate-100 dark:bg-white/5 p-1 border border-slate-200 dark:border-white/10">
+          <div className="inline-flex rounded-lg bg-slate-100/60 dark:bg-white/5 p-1 border border-slate-200/50 dark:border-white/10">
             <button
               type="button"
               onClick={() => onChangeSort("alpha")}
@@ -102,7 +112,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
             <button
               type="button"
               onClick={() => setIsWordlistMenuOpen((v) => !v)}
-              className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 ${iconButtonTone} text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
               aria-haspopup="listbox"
               aria-expanded={isWordlistMenuOpen}
               aria-label="Select wordlist"
@@ -156,7 +166,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
           <button
             type="button"
             onClick={onCreateWordlist}
-            className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+            className={iconButtonTone}
             aria-label="Create new wordlist"
             title="New wordlist"
           >
@@ -166,7 +176,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
           <button
             type="button"
             onClick={onRenameWordlist}
-            className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+            className={iconButtonTone}
             aria-label="Rename current wordlist"
             title="Rename"
           >
@@ -176,18 +186,59 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
           <button
             type="button"
             onClick={onDeleteWordlist}
-            className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+            className={`${iconButtonTone} hover:text-red-500 dark:hover:text-red-400`}
             aria-label="Delete current wordlist"
-            title="Delete"
+            title="Delete Wordlist"
           >
             <Trash2 className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchOpen((v) => {
+                const next = !v;
+                if (!next) setSearch("");
+                return next;
+              });
+            }}
+            className={iconButtonTone}
+            aria-label="Toggle search"
+            title="Search"
+          >
+            <Search className={`w-4 h-4 ${isSearchOpen ? "text-indigo-500" : ""}`} />
           </button>
         </div>
       </div>
 
-      {displayedWords.length > 0 ? (
+      {isSearchOpen && (
+        <div className="mb-4 flex items-center gap-3">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search words (starts with)"
+              className="w-full bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
+            />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : null}
+          </div>
+          <span className="text-xs text-slate-400 dark:text-slate-500">{filteredWords.length} / {displayedWords.length}</span>
+        </div>
+      )}
+
+      {filteredWords.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-y-auto pr-2 custom-scrollbar">
-          {displayedWords.map((w) => (
+          {filteredWords.map((w) => (
             <div
               key={w.id}
               className={`relative p-3 rounded-lg border transition-all ${
