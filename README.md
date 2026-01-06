@@ -38,6 +38,7 @@ Built with the help of
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **AI Integration**: [Google GenAI SDK](https://www.npmjs.com/package/@google/genai)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand) (see `store/vocabStore.ts`)
 - **Icons**: [Lucide React](https://lucide.dev/)
 
 ## 🚀 Getting Started

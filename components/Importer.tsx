@@ -74,7 +74,7 @@ const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords }) => {
         {hasWords && (
           <button
             onClick={onStart}
-            className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/25"
+            className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all"
           >
             Start Learning
           </button>

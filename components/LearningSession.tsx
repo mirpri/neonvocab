@@ -309,7 +309,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({
         {/* Answer Reveal (Only on Give Up or Success) */}
         {state === GameState.SHOWING_ANSWER && (
           <div className="mt-6 text-center animate-pop">
-            <p className="text-slate-500 dark:text-slate-400 mb-2">
+            <p className="text-slate-500 dark:text-slate-400">
               The correct word was:
             </p>
             <h3 className="text-3xl font-bold text-red-600 dark:text-red-400 mb-4 tracking-wider">
@@ -351,7 +351,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({
               <button
                 onClick={onNext}
                 autoFocus
-                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
+                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transform transition hover:scale-105 active:scale-95"
               >
                 {state === GameState.SUCCESS ? "Next Word" : "Continue"}{" "}
                 <ArrowRight className="w-5 h-5" />

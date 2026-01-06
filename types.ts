@@ -7,6 +7,12 @@ export interface WordItem {
   totalAttempts: number;
 }
 
+export interface WordList {
+  id: string;
+  name: string;
+  words: WordItem[];
+}
+
 export interface AppStats {
   streak: number;
   totalWordsLearned: number; // Historical total

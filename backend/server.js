@@ -120,6 +120,33 @@ app.get('/definition', async (req, res) => {
     }
 });
 
+app.get('/bing-image', async (req, res) => {
+    try {
+        const mkt = typeof req.query.mkt === 'string' ? req.query.mkt : 'en-US';
+        const idx = typeof req.query.idx === 'string' ? req.query.idx : '0';
+        const n = typeof req.query.n === 'string' ? req.query.n : '1';
+
+        const url = `https://www.bing.com/HPImageArchive.aspx?format=js&idx=${encodeURIComponent(idx)}&n=${encodeURIComponent(n)}&mkt=${encodeURIComponent(mkt)}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            return res.status(502).json({ error: `Bing upstream error: ${response.status}` });
+        }
+
+        const data = await response.json();
+        const relative = data?.images?.[0]?.url;
+        if (!relative) {
+            return res.status(502).json({ error: 'Bing response missing image URL' });
+        }
+
+        const imageUrl = relative.startsWith('http') ? relative : `https://www.bing.com${relative}`;
+        res.set('Cache-Control', 'public, max-age=3600');
+        return res.json({ url: imageUrl });
+    } catch (error) {
+        console.error('Backend Error (/bing-image):', error);
+        return res.status(500).json({ error: 'Failed to fetch Bing daily image.' });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('NeonVocab API is running.');
 });
