@@ -410,8 +410,8 @@ function App() {
             />
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center flex-1">
-            <div className="w-full mb-4 flex justify-between items-center text-sm text-slate-500 dark:text-white/60">
+          <>
+            <div className="w-full text-sm text-slate-500 dark:text-white/60 mx-auto w-full items-end flex justify-end">
               <button
                 onClick={endSession}
                 className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
@@ -419,7 +419,7 @@ function App() {
                 <LogOut className="w-4 h-4" /> End Session
               </button>
             </div>
-
+          <div className="flex flex-col items-center justify-center flex-1">
             {isGoalMet ? (
               <GoalMetPanel
                 stats={stats}
@@ -455,6 +455,7 @@ function App() {
               </div>
             )}
           </div>
+          </>
         )}
         <footer className="my-6 text-center text-slate-400 dark:text-white/30 text-sm relative transition-colors duration-300">
           <p>Powered by AI &copy; 2026 Mirpri</p>

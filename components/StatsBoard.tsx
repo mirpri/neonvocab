@@ -173,7 +173,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
                     <Zap className={`w-6 h-6 transition-colors duration-300 ${speedColor} ${speedAnimation}`} />
                 </div>
                 <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Velocity</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Speed</p>
                     <p className={`text-xl ${wpm > 8 ? 'font-black italic' : 'font-bold'} tracking-tighter transition-all duration-300 ${speedColor}`}>
                         {wpm} <span className="text-sm font-normal not-italic text-slate-500">wpm</span>
                     </p>
@@ -203,7 +203,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
                          {goal.type === 'time' ? 'Time' : goal.type === 'total_words' ? 'Words' : 'Correct'}
                     </p>
                     <div className="flex items-baseline gap-1">
-                        <p className={`text-xl font-bold ${isGoalMet ? 'text-green-600 dark:text-green-400' : 'text-slate-900 dark:text-white'}`}>
+                        <p className={`text-xl font-bold ${isGoalMet ? 'text-green-600 dark:text-green-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
                             {currentGoalValue}
                         </p>
                         <span className="text-slate-500 text-sm">/ {goal.target} {goal.type === 'time' ? 'min' : ''}</span>
@@ -215,7 +215,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
 
     if (isLearning) {
         return (
-            <div className={`flex grid grid-cols-4 ${goal ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-2 sm:gap-4 mb-6`}>
+            <div className={`flex grid ${goal ? 'grid-cols-4' : 'grid-cols-3'} gap-2 sm:gap-4 mb-6`}>
                 {streakCard}
                 {sessionCard}
                 {velocityCard}

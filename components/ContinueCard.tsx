@@ -95,7 +95,7 @@ const ContinueCard: React.FC<ContinueCardProps> = ({
         >
           <span className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <Target className="w-4 h-4 text-indigo-500" />
-            Set a Session Goal
+            Session Goal
           </span>
           <div
             className={`w-10 h-6 rounded-full p-1 transition-colors ${
@@ -115,67 +115,73 @@ const ContinueCard: React.FC<ContinueCardProps> = ({
         <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${isGoalEnabled ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
           <div className="overflow-hidden">
             <div className="px-4 pb-6 border-t border-slate-200 dark:border-slate-700/50 pt-4">
-            {/* Goal Type Tabs */}
-            <div className="flex p-1 bg-slate-100 dark:bg-slate-900/50 rounded-lg mb-8">
-              {(['time', 'total_words', 'correct_words'] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => { setGoalType(type); setTargetValue(type === 'time' ? 10 : type === 'total_words' ? 20 : 10); }}
-                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${
-                    goalType === type
-                      ? "bg-white dark:bg-slate-800 shadow-sm text-slate dark:text-white"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                  }`}
-                >
-                  {type === 'time' && <Clock className="w-3 h-3" />}
-                  {type === 'total_words' && <Hash className="w-3 h-3" />}
-                  {type === 'correct_words' && <CheckCircle2 className="w-3 h-3" />}
-                  {type === 'time' ? 'Time' : type === 'total_words' ? 'Words' : 'Correct'}
-                </button>
-              ))}
-            </div>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                {/* Goal Type Tabs (compact) */}
+                <div className="flex p-1 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                  {(['time', 'total_words', 'correct_words'] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => { setGoalType(type); setTargetValue(type === 'time' ? 10 : type === 'total_words' ? 20 : 10); }}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                        goalType === type
+                          ? "bg-white dark:bg-slate-800 shadow-sm text-slate dark:text-white"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                      }`}
+                      aria-pressed={goalType === type}
+                      title={type === 'time' ? 'Time Goal' : type === 'total_words' ? 'Total Words Goal' : 'Correct Answers Goal'}
+                    >
+                      {type === 'time' && <Clock className="w-4 h-4" />}
+                      {type === 'total_words' && <Hash className="w-4 h-4" />}
+                      {type === 'correct_words' && <CheckCircle2 className="w-4 h-4" />}
+                    </button>
+                  ))}
+                </div>
 
-            {/* Target Value Input */}
-            <div className="flex flex-col items-center justify-center mb-6">
-              <div className="flex items-baseline justify-center relative">
-                <input
-                  type="number"
-                  min="1"
-                  max="999"
-                  value={targetValue}
-                  onChange={(e) =>
-                    setTargetValue(Math.max(1, parseInt(e.target.value) || 0))
-                  }
-                  className="w-32 text-center text-5xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-indigo-500 dark:focus:border-indigo-500 outline-none text-slate-800 dark:text-white transition-colors"
-                />
-                <span className="text-lg font-medium text-slate-400 dark:text-slate-500 left-full ml-2 bottom-4 whitespace-nowrap">
-                   {goalType === 'time' ? 'minutes' : goalType === 'total_words' ? 'words' : 'correct answers'}
-                </span>
+                {/* Target Value Input (compact with inline unit) */}
+                <div className="flex items-center justify-center">
+                  <div className="flex items-baseline">
+                    <input
+                      type="number"
+                      min="1"
+                      max="999"
+                      value={targetValue}
+                      onChange={(e) =>
+                        setTargetValue(Math.max(1, parseInt(e.target.value) || 0))
+                      }
+                      className="w-20 text-center text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-indigo-500 dark:focus:border-indigo-500 outline-none text-slate-800 dark:text-white transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      style={{ WebkitAppearance: "none", MozAppearance: "textfield", appearance: "textfield", margin: 0 }}
+                      aria-label="Target value"
+                    />
+                    <span className="ml-2 text-lg font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                      {goalType === 'time' ? 'minutes' : goalType === 'total_words' ? 'words' : 'correct'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Presets (compact chips) */}
+                <div className="flex justify-end gap-1.5">
+                  {(goalType === "time"
+                    ? [5, 10, 30, 60]
+                    : goalType === "total_words"
+                    ? [20, 50, 100, 200]
+                    : [10, 20, 50, 100]
+                  ).map((val) => (
+                    <button
+                      key={val}
+                      onClick={() => setTargetValue(val)}
+                      className={`w-9 py-1 rounded-full text-sm font-medium border transition-colors ${
+                        targetValue === val
+                          ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
+                          : "bg-slate-50 dark:bg-slate-900/20 text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300"
+                      }`}
+                      aria-current={targetValue === val}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-
-            {/* Presets */}
-            <div className="flex justify-center gap-3 pt-2">
-              {(goalType === "time"
-                ? [5, 10, 30]
-                : goalType === "total_words"
-                ? [20, 50, 100, 200]
-                : [10, 20, 50, 100]
-              ).map((val) => (
-                <button
-                  key={val}
-                  onClick={() => setTargetValue(val)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                      targetValue === val
-                      ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
-                      : "bg-slate-50 dark:bg-slate-900/20 text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300"
-                  }`}
-                >
-                  {val}
-                </button>
-              ))}
-            </div>
-          </div>
           </div>
         </div>
       </div>
