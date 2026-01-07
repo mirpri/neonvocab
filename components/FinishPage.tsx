@@ -15,7 +15,7 @@ const FinishPage: React.FC<FinishPageProps> = ({
   onBack,
 }) => {
   return (
-    <div className="w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-2xl border border-green-500/50 dark:border-green-500 text-center animate-pop transition-colors duration-300">
+    <div className="w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 text-center animate-pop transition-colors duration-300">
       <div className="mb-6">
         <div className="w-20 h-20 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
           <PartyPopper className="w-10 h-10 text-green-600 dark:text-green-400" />

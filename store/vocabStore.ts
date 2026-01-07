@@ -41,6 +41,7 @@ type VocabStoreState = {
   isLearning: boolean;
   currentWordIndex: number | null;
   wordQueue: number[];
+  wordNonce: number; // increments when picking next word to force UI remounts
   isSessionComplete: boolean;
   isGoalMet: boolean;
   sessionGoal: SessionGoal | null;
@@ -194,6 +195,7 @@ export const useVocabStore = create<VocabStoreState>()(
         isSessionComplete: false,
         isGoalMet: false,
         sessionGoal: null,
+        wordNonce: 0,
 
         selectWordlist: (id) => {
           set(() => ({
@@ -348,6 +350,7 @@ export const useVocabStore = create<VocabStoreState>()(
             wordQueue: s.wordQueue,
             sessionGoal: goal ?? null,
             lastSessionGoal: goal ?? null,
+            wordNonce: 0,
             stats: {
               ...s.stats,
               sessionStartTime: Date.now(),
@@ -368,7 +371,7 @@ export const useVocabStore = create<VocabStoreState>()(
 
         pickNextWord: (isInitial = false) => {
           const state = get();
-          
+
           set((s) => {
             // Check Session Goal before picking next word
             if (!isInitial && s.sessionGoal && !s.isGoalMet) {
@@ -390,7 +393,7 @@ export const useVocabStore = create<VocabStoreState>()(
                 }
             }
 
-            const words = getActiveWords({ ...state, ...s });
+            const words = getActiveWords(state);
             let nextIndex: number | null = null;
             let newQueue = [...s.wordQueue];
 
@@ -436,6 +439,7 @@ export const useVocabStore = create<VocabStoreState>()(
             return {
               currentWordIndex: nextIndex,
               wordQueue: newQueue,
+              wordNonce: s.wordNonce + 1,
             };
           });
         },

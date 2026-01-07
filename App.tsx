@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo } from "react";
-import type { WordItem, WordList, DefinitionResponse } from "./types";
 import Importer from "./components/Importer";
 import ContinueCard from "./components/ContinueCard";
 import LearningSession from "./components/LearningSession";
@@ -7,8 +6,8 @@ import StatsBoard from "./components/StatsBoard";
 import NavBar from "./components/Navbar";
 import WordListPanel from "./components/WordListPanel";
 import FinishPage from "./components/FinishPage";
-import GoalMetPanel from "./components/GoalMetPanel";
-import { Trash2, LogOut } from "lucide-react";
+import GoalMetPanel from "./components/GoalMetCard";
+import { LogOut } from "lucide-react";
 import { fetchWordDefinition } from "./services/ai";
 import { useVocabStore, selectActiveWordlist } from "./store/vocabStore";
 
@@ -67,7 +66,10 @@ function Flipper({
           ref={frontRef}
           className="absolute top-0 left-0 w-full"
           style={{
+            transform: "rotateY(0deg)",
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            MozBackfaceVisibility: "hidden",
             pointerEvents: showBack ? "none" : "auto",
           }}
           aria-hidden={showBack}
@@ -82,6 +84,8 @@ function Flipper({
           style={{
             transform: "rotateY(180deg)",
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            MozBackfaceVisibility: "hidden",
             pointerEvents: showBack ? "auto" : "none",
           }}
           aria-hidden={!showBack}
@@ -107,6 +111,7 @@ function App() {
   const isLearning = useVocabStore((s) => s.isLearning);
   const sessionGoal = useVocabStore((s) => s.sessionGoal);
   const isGoalMet = useVocabStore((s) => s.isGoalMet);
+  const wordNonce = useVocabStore((s) => s.wordNonce);
   const currentWordIndex = useVocabStore((s) => s.currentWordIndex);
   const wordQueue = useVocabStore((s) => s.wordQueue);
   const isSessionComplete = useVocabStore((s) => s.isSessionComplete);
@@ -301,16 +306,6 @@ function App() {
       deleteActiveWordlist();
     }
   };
-  const handleClearCurrentWordlist = () => {
-    const listName = activeWordlist?.name ?? "this list";
-    if (
-      window.confirm(
-        `Clear all words and progress in "${listName}"? (Daily stats and other lists will stay.)`
-      )
-    ) {
-      clearActiveWordlist();
-    }
-  };
 
   const handleDeleteAll = () => {
     if (
@@ -414,7 +409,7 @@ function App() {
             <div className="w-full text-sm text-slate-500 dark:text-white/60 mx-auto w-full items-end flex justify-end">
               <button
                 onClick={endSession}
-                className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
               >
                 <LogOut className="w-4 h-4" /> End Session
               </button>
@@ -429,6 +424,7 @@ function App() {
               />
             ) : currentWord && !isSessionComplete ? (
               <LearningSession
+                key={`${currentWord.id}-${wordNonce}`}
                 wordItem={currentWord}
                 definitionData={definitionCache[currentWord.word]}
                 onResult={handleResult}
