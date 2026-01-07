@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useMemo } from "react";
 import type { WordItem, WordList, DefinitionResponse } from "./types";
 import Importer from "./components/Importer";
 import ContinueCard from "./components/ContinueCard";
@@ -7,6 +7,7 @@ import StatsBoard from "./components/StatsBoard";
 import NavBar from "./components/Navbar";
 import WordListPanel from "./components/WordListPanel";
 import FinishPage from "./components/FinishPage";
+import GoalMetPanel from "./components/GoalMetPanel";
 import { Trash2, LogOut } from "lucide-react";
 import { fetchWordDefinition } from "./services/ai";
 import { useVocabStore, selectActiveWordlist } from "./store/vocabStore";
@@ -23,8 +24,16 @@ function Flipper({
   back: React.ReactNode;
 }) {
   const [height, setHeight] = useState<number | undefined>(undefined);
+  // Track if we are actively flipping to control transition on height
+  const [isFlipping, setIsFlipping] = useState(false);
   const frontRef = React.useRef<HTMLDivElement>(null);
   const backRef = React.useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    setIsFlipping(true);
+    const t = setTimeout(() => setIsFlipping(false), FLIP_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [showBack]);
 
   useEffect(() => {
     const target = showBack ? backRef.current : frontRef.current;
@@ -43,12 +52,14 @@ function Flipper({
   return (
     <div className="relative w-full" style={{ perspective: "1000px" }}>
       <div
-        className="relative transition-[transform,height] ease-in-out"
+        className="relative ease-in-out"
         style={{
           transformStyle: "preserve-3d",
           transform: showBack ? "rotateY(180deg)" : "rotateY(0deg)",
           height: height ? `${height}px` : "auto",
-          transitionDuration: `${FLIP_DURATION_MS}ms`,
+          transition: `transform ${FLIP_DURATION_MS}ms ease-in-out, height ${
+            isFlipping ? FLIP_DURATION_MS : 0
+          }ms ease-in-out`,
         }}
       >
         {/* Front */}
@@ -94,6 +105,8 @@ function App() {
   const activeWordlistId = useVocabStore((s) => s.activeWordlistId);
   const wordSort = useVocabStore((s) => s.wordSort);
   const isLearning = useVocabStore((s) => s.isLearning);
+  const sessionGoal = useVocabStore((s) => s.sessionGoal);
+  const isGoalMet = useVocabStore((s) => s.isGoalMet);
   const currentWordIndex = useVocabStore((s) => s.currentWordIndex);
   const wordQueue = useVocabStore((s) => s.wordQueue);
   const isSessionComplete = useVocabStore((s) => s.isSessionComplete);
@@ -105,6 +118,7 @@ function App() {
   const importWords = useVocabStore((s) => s.importWords);
   const removeWord = useVocabStore((s) => s.removeWord);
   const startLearning = useVocabStore((s) => s.startLearning);
+  const continueSession = useVocabStore((s) => s.continueSession);
   const endSession = useVocabStore((s) => s.endSession);
   const pickNextWord = useVocabStore((s) => s.pickNextWord);
   const fillQueueIfNeeded = useVocabStore((s) => s.fillQueueIfNeeded);
@@ -328,6 +342,7 @@ function App() {
           : undefined
       }
     >
+      
       {!isLearning && (
         <NavBar
           theme={theme}
@@ -349,6 +364,7 @@ function App() {
           dailyStats={dailyStats}
           words={words}
           isLearning={isLearning}
+          goal={sessionGoal}
         />
 
         {!isLearning ? (
@@ -356,24 +372,25 @@ function App() {
             {(() => {
               const showingImporter = words.length === 0 ? true : showImporter;
               return (
-                <Flipper
-                  showBack={showingImporter}
-                  front={
-                    <ContinueCard
-                      words={words}
-                      onStart={startLearning}
-                      onFlip={() => setShowImporter(true)}
-                    />
-                  }
-                  back={
-                    <Importer
-                      onImport={handleImport}
-                      onStart={startLearning}
-                      hasWords={words.length > 0}
-                      onFlip={() => setShowImporter(false)}
-                    />
-                  }
-                />
+                <div className="relative z-20 mb-10">
+                  <Flipper
+                    showBack={showingImporter}
+                    front={
+                      <ContinueCard
+                        words={words}
+                        onStart={startLearning}
+                        onFlip={() => setShowImporter(true)}
+                      />
+                    }
+                    back={
+                      <Importer
+                        onImport={handleImport}
+                        hasWords={words.length > 0}
+                        onFlip={() => setShowImporter(false)}
+                      />
+                    }
+                  />
+                </div>
               );
             })()}
 
@@ -403,7 +420,14 @@ function App() {
               </button>
             </div>
 
-            {currentWord && !isSessionComplete ? (
+            {isGoalMet ? (
+              <GoalMetPanel
+                stats={stats}
+                goal={sessionGoal}
+                onContinue={continueSession}
+                onQuit={endSession}
+              />
+            ) : currentWord && !isSessionComplete ? (
               <LearningSession
                 wordItem={currentWord}
                 definitionData={definitionCache[currentWord.word]}

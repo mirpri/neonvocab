@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AppStats, DailyStats, WordItem } from '../types';
-import { Flame, Trophy, Zap, CalendarClock, GraduationCap } from 'lucide-react';
+import { AppStats, DailyStats, WordItem, SessionGoal } from '../types';
+import { Flame, Trophy, Zap, CalendarClock, GraduationCap, Target, Clock, Hash, CheckCircle2 } from 'lucide-react';
 
 interface StatsBoardProps {
   stats: AppStats;
   dailyStats: Record<string, DailyStats>;
   words: WordItem[];
   isLearning: boolean;
+  goal?: SessionGoal | null;
 }
 
-const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLearning }) => {
+const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLearning, goal }) => {
   const [wpm, setWpm] = useState(0);
     const samplesRef = useRef<Array<{ t: number; correct: number }>>([]);
     const correctRef = useRef(stats.sessionWordsCorrect);
@@ -17,6 +18,24 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
     useEffect(() => {
         correctRef.current = stats.sessionWordsCorrect;
     }, [stats.sessionWordsCorrect]);
+
+  const [elapsedMin, setElapsedMin] = useState(0);
+
+  useEffect(() => {
+    if (!isLearning || !goal || goal.type !== 'time') {
+        setElapsedMin(0);
+        return;
+    }
+    
+    const updateTime = () => {
+        const ms = Date.now() - stats.sessionStartTime;
+        setElapsedMin(Math.floor(ms / 60000));
+    };
+
+    updateTime(); // initial
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [isLearning, goal, stats.sessionStartTime]);
 
   // Velocity Calculation - Only run when learning
   useEffect(() => {
@@ -93,7 +112,15 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
 
   const maxVal = Math.max(1, ...chartData.map(d => Math.max(d.data.tried, d.data.success)));
 
-  // -- ESTIMATION LOGIC --
+    const currentGoalValue = (() => {
+        if (!goal) return 0;
+        if (goal.type === 'time') return elapsedMin;
+        if (goal.type === 'total_words') return stats.sessionWordsTried;
+        if (goal.type === 'correct_words') return stats.sessionWordsCorrect;
+        return 0;
+    })();
+
+    const isGoalMet = goal ? currentGoalValue >= goal.target : false;
   const masteredCount = words.filter(w => w.isMastered).length;
   const remainingCount = words.length - masteredCount;
 
@@ -158,12 +185,41 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
         </div>
     );
 
+    const goalCard = goal ? (
+        <div className={`col-span-1 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border flex items-center justify-between shadow-lg relative overflow-hidden transition-all duration-300 ${isGoalMet ? 'border-green-500/50 shadow-green-900/10' : 'border-slate-200 dark:border-white/10'}`}>
+             
+             {/* Progress Background */}
+             <div 
+                className={`absolute left-0 top-0 bottom-0 transition-all duration-1000 ease-out z-0 ${isGoalMet ? 'bg-green-500/10 dark:bg-green-500/20' : 'bg-indigo-500/20 dark:bg-indigo-500/30'}`}
+                style={{ width: `${Math.min(100, (currentGoalValue / goal.target) * 100)}%` }}
+             ></div>
+
+            <div className={`flex items-center gap-3 z-10 w-full`}>
+                 <div className={`hidden sm:flex shrink-0 p-2 rounded-lg transition-colors duration-300 ${isGoalMet ? 'bg-green-100 dark:bg-green-500/20' : 'bg-indigo-100 dark:bg-indigo-500/20'}`}>
+                    <Target className={`w-6 h-6 ${isGoalMet ? 'text-green-600 dark:text-green-400' : 'text-indigo-600 dark:text-indigo-400'}`} />
+                </div>
+                <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
+                         {goal.type === 'time' ? 'Time' : goal.type === 'total_words' ? 'Words' : 'Correct'}
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                        <p className={`text-xl font-bold ${isGoalMet ? 'text-green-600 dark:text-green-400' : 'text-slate-900 dark:text-white'}`}>
+                            {currentGoalValue}
+                        </p>
+                        <span className="text-slate-500 text-sm">/ {goal.target} {goal.type === 'time' ? 'min' : ''}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ) : null;
+
     if (isLearning) {
         return (
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+            <div className={`flex grid grid-cols-4 ${goal ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-2 sm:gap-4 mb-6`}>
                 {streakCard}
                 {sessionCard}
                 {velocityCard}
+                {goalCard}
             </div>
         );
     }

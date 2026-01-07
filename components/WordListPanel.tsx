@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, Pencil, ListPlus, X, ChevronDown, Check, Search } from "lucide-react";
+import { Trash2, Pencil, ListPlus, X, ChevronDown, Check, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import type { WordItem, WordList } from "../types";
 
 interface WordListPanelProps {
@@ -19,6 +19,8 @@ interface WordListPanelProps {
   onRemoveWord: (wordId: string, wordText: string) => void;
 }
 
+const ITEMS_PER_PAGE = 60;
+
 const WordListPanel: React.FC<WordListPanelProps> = ({
   activeWordlistName,
   words,
@@ -36,6 +38,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
   const [isWordlistMenuOpen, setIsWordlistMenuOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [currentPage, setCurrentPage] = React.useState(1);
   const wordlistMenuRef = React.useRef<HTMLDivElement | null>(null);
   const iconButtonTone =
     "p-2 rounded-lg bg-slate-100/60 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border border-slate-200/50 dark:border-white/10";
@@ -49,6 +52,16 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
     if (!q) return displayedWords;
     return displayedWords.filter((w) => w.word.toLowerCase().startsWith(q));
   }, [displayedWords, search]);
+
+  const totalPages = Math.ceil(filteredWords.length / ITEMS_PER_PAGE);
+  const paginatedWords = React.useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredWords.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredWords, currentPage]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeWordlistId, search, wordSort]);
 
   React.useEffect(() => {
     if (!isWordlistMenuOpen) return;
@@ -72,7 +85,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
   }, [isWordlistMenuOpen]);
 
   return (
-    <div className="mt-12 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl backdrop-saturate-150 p-6 rounded-2xl border border-white/20 dark:border-white/10 shadow-lg flex flex-col max-h-[60vh] transition-colors duration-300">
+    <div className="mt-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl backdrop-saturate-150 p-6 rounded-2xl border border-white/20 dark:border-white/10 shadow-lg flex flex-col max-h-[60vh] transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 flex-shrink-0">
         <div className="flex flex-1 justify-between items-center gap-2">
           <h3 className="text-slate-500 dark:text-white/70 font-bold uppercase tracking-wider">
@@ -236,9 +249,9 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
         </div>
       )}
 
-      {filteredWords.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-y-auto pr-2 custom-scrollbar">
-          {filteredWords.map((w) => (
+      {paginatedWords.length > 0 ? (
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-y-auto pr-2 custom-scrollbar content-start">
+          {paginatedWords.map((w) => (
             <div
               key={w.id}
               className={`relative p-3 rounded-lg border transition-all ${
@@ -295,6 +308,81 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
           <p className="text-sm text-slate-500 dark:text-white/50 text-center px-6">
             This wordlist is empty. Import words or create another list.
           </p>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-2 border-slate-200 dark:border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-slate-600 dark:text-slate-400"
+              aria-label="First page"
+            >
+              <ChevronsLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-slate-600 dark:text-slate-400"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 px-2">
+            <span>Page</span>
+            <input
+              key={currentPage}
+              defaultValue={currentPage}
+              className="w-12 p-1 text-center bg-transparent border rounded border-slate-300 dark:border-white/20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const val = parseInt(e.currentTarget.value);
+                  if (!isNaN(val)) {
+                    const p = Math.min(Math.max(1, val), totalPages);
+                    setCurrentPage(p);
+                    if (p !== val) e.currentTarget.value = p.toString();
+                  } else {
+                    e.currentTarget.value = currentPage.toString();
+                  }
+                  e.currentTarget.blur();
+                }
+              }}
+              onBlur={(e) => {
+                const val = parseInt(e.currentTarget.value);
+                if (!isNaN(val)) {
+                  const p = Math.min(Math.max(1, val), totalPages);
+                  if (p !== currentPage) setCurrentPage(p);
+                  e.currentTarget.value = p.toString();
+                } else {
+                  e.currentTarget.value = currentPage.toString();
+                }
+              }}
+            />
+            <span>of {totalPages}</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-slate-600 dark:text-slate-400"
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-slate-600 dark:text-slate-400"
+              aria-label="Last page"
+            >
+              <ChevronsRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -6,7 +6,12 @@ export interface WordItem {
   isMastered: boolean;
   totalAttempts: number;
 }
+export type SessionGoalType = 'time' | 'total_words' | 'correct_words';
 
+export interface SessionGoal {
+  type: SessionGoalType;
+  target: number;
+}
 export interface WordList {
   id: string;
   name: string;

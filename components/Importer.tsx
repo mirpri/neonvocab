@@ -1,24 +1,30 @@
 import React, { useState } from 'react';
-import { Plus, Save, RefreshCcw } from 'lucide-react';
+import { Plus, Save, RefreshCcw, Check } from 'lucide-react';
 import highschoolPreset from '../wordlists/Highschool.txt?raw';
 import toeflPreset from '../wordlists/TOEFL.txt?raw';
 import cetPreset from '../wordlists/CET.txt?raw';
 
 interface ImporterProps {
   onImport: (text: string) => void;
-  onStart: () => void;
   hasWords: boolean;
   onFlip?: () => void;
 }
 
-const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords, onFlip }) => {
+const Importer: React.FC<ImporterProps> = ({ onImport, hasWords, onFlip }) => {
   const [text, setText] = useState('');
+  const [loadedPreset, setLoadedPreset] = useState<string | null>(null);
 
   const handleImport = () => {
     if (text.trim()) {
       onImport(text);
       setText('');
+      setLoadedPreset(null);
     }
+  };
+
+  const loadPreset = (name: string, content: string) => {
+    setText(content);
+    setLoadedPreset(name);
   };
 
   return (
@@ -45,23 +51,41 @@ const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords, onFlip
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           type="button"
-          onClick={() => onImport(highschoolPreset)}
-          className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold text-sm transition-colors"
+          onClick={() => loadPreset('highschool', highschoolPreset)}
+          disabled={loadedPreset === 'highschool'}
+          className={`px-3 py-1.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-1.5 ${
+            loadedPreset === 'highschool'
+              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+              : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white"
+          }`}
         >
+          {loadedPreset === 'highschool' && <Check className="w-3.5 h-3.5" />}
           Import Highschool
         </button>
         <button
           type="button"
-          onClick={() => onImport(cetPreset)}
-          className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold text-sm transition-colors"
+          onClick={() => loadPreset('cet', cetPreset)}
+          disabled={loadedPreset === 'cet'}
+          className={`px-3 py-1.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-1.5 ${
+            loadedPreset === 'cet'
+              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+              : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white"
+          }`}
         >
+          {loadedPreset === 'cet' && <Check className="w-3.5 h-3.5" />}
           Import CET-6
         </button>
         <button
           type="button"
-          onClick={() => onImport(toeflPreset)}
-          className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold text-sm transition-colors"
+          onClick={() => loadPreset('toefl', toeflPreset)}
+          disabled={loadedPreset === 'toefl'}
+          className={`px-3 py-1.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-1.5 ${
+            loadedPreset === 'toefl'
+              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+              : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white"
+          }`}
         >
+          {loadedPreset === 'toefl' && <Check className="w-3.5 h-3.5" />}
           Import TOEFL
         </button>
       </div>
@@ -82,15 +106,6 @@ const Importer: React.FC<ImporterProps> = ({ onImport, onStart, hasWords, onFlip
           <Save className="w-4 h-4" />
           Add to List
         </button>
-        
-        {hasWords && (
-          <button
-            onClick={onStart}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all"
-          >
-            Start Learning
-          </button>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { AppStats, DailyStats, DefinitionResponse, WordItem, WordList } from "../types";
+import type { AppStats, DailyStats, DefinitionResponse, WordItem, WordList, SessionGoal } from "../types";
 
 const PRELOAD_BUFFER_SIZE = 3;
 
@@ -42,6 +42,9 @@ type VocabStoreState = {
   currentWordIndex: number | null;
   wordQueue: number[];
   isSessionComplete: boolean;
+  isGoalMet: boolean;
+  sessionGoal: SessionGoal | null;
+  lastSessionGoal: SessionGoal | null;
 
   // Stats (global across lists)
   stats: AppStats;
@@ -61,10 +64,11 @@ type VocabStoreState = {
   importWords: (text: string) => void;
   removeWord: (wordId: string, wordText: string) => void;
 
-  startLearning: () => void;
+  startLearning: (goal?: SessionGoal) => void;
   endSession: () => void;
   pickNextWord: (isInitial?: boolean) => void;
   fillQueueIfNeeded: () => void;
+  continueSession: () => void;
 
   applyResult: (success: boolean, resetStreak: boolean, resetWordProgress?: boolean) => void;
 
@@ -75,7 +79,7 @@ type VocabStoreState = {
 
 type PersistedSlice = Pick<
   VocabStoreState,
-  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache"
+  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache" | "lastSessionGoal"
 >;
 
 const getActiveWords = (state: Pick<VocabStoreState, "wordlists" | "activeWordlistId">) => {
@@ -152,6 +156,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       stats,
       dailyStats,
       definitionCache: {},
+      lastSessionGoal: null,
     };
   } catch {
     const fallbackLists = ensureNonEmptyWordlists(undefined);
@@ -162,6 +167,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       stats: getDefaultStats(),
       dailyStats: {},
       definitionCache: {},
+      lastSessionGoal: null,
     };
   }
 };
@@ -179,12 +185,15 @@ export const useVocabStore = create<VocabStoreState>()(
         stats: persistedInit.stats,
         dailyStats: persistedInit.dailyStats,
         definitionCache: persistedInit.definitionCache,
+        lastSessionGoal: persistedInit.lastSessionGoal,
 
         // Non-persisted session
         isLearning: false,
         currentWordIndex: null,
         wordQueue: [],
         isSessionComplete: false,
+        isGoalMet: false,
+        sessionGoal: null,
 
         selectWordlist: (id) => {
           set(() => ({
@@ -193,6 +202,7 @@ export const useVocabStore = create<VocabStoreState>()(
             currentWordIndex: null,
             wordQueue: [],
             isSessionComplete: false,
+            isGoalMet: false,
           }));
         },
 
@@ -206,6 +216,7 @@ export const useVocabStore = create<VocabStoreState>()(
             currentWordIndex: null,
             wordQueue: [],
             isSessionComplete: false,
+            isGoalMet: false,
           }));
         },
 
@@ -238,9 +249,7 @@ export const useVocabStore = create<VocabStoreState>()(
               ),
               definitionCache: nextCache,
               isLearning: false,
-              currentWordIndex: null,
-              wordQueue: [],
-              isSessionComplete: false,
+              isGoalMet: false,
             };
           });
         },
@@ -274,6 +283,7 @@ export const useVocabStore = create<VocabStoreState>()(
               currentWordIndex: null,
               wordQueue: [],
               isSessionComplete: false,
+              isGoalMet: false,
             };
           });
         },
@@ -324,18 +334,20 @@ export const useVocabStore = create<VocabStoreState>()(
               // If removing, safest to reset session selection/queue.
               isLearning: false,
               currentWordIndex: null,
-              wordQueue: [],
-              isSessionComplete: false,
+              isGoalMet: false,
             };
           });
         },
 
-        startLearning: () => {
+        startLearning: (goal) => {
           set((s) => ({
             isLearning: true,
             isSessionComplete: false,
+            isGoalMet: false,
             currentWordIndex: s.currentWordIndex,
             wordQueue: s.wordQueue,
+            sessionGoal: goal ?? null,
+            lastSessionGoal: goal ?? null,
             stats: {
               ...s.stats,
               sessionStartTime: Date.now(),
@@ -349,14 +361,36 @@ export const useVocabStore = create<VocabStoreState>()(
         endSession: () => {
           set(() => ({
             isLearning: false,
+            sessionGoal: null,
+            isGoalMet: false,
           }));
         },
 
         pickNextWord: (isInitial = false) => {
           const state = get();
-          const words = getActiveWords(state);
-
+          
           set((s) => {
+            // Check Session Goal before picking next word
+            if (!isInitial && s.sessionGoal && !s.isGoalMet) {
+                const { type, target } = s.sessionGoal;
+                let goalMet = false;
+                if (type === 'total_words' && s.stats.sessionWordsTried >= target) {
+                  goalMet = true;
+                } else if (type === 'correct_words' && s.stats.sessionWordsCorrect >= target) {
+                  goalMet = true;
+                } else if (type === 'time') {
+                  const elapsedMin = (Date.now() - s.stats.sessionStartTime) / 60000;
+                  if (elapsedMin >= target) {
+                    goalMet = true;
+                  }
+                }
+                
+                if (goalMet) {
+                    return { isGoalMet: true };
+                }
+            }
+
+            const words = getActiveWords({ ...state, ...s });
             let nextIndex: number | null = null;
             let newQueue = [...s.wordQueue];
 
@@ -468,7 +502,7 @@ export const useVocabStore = create<VocabStoreState>()(
               streak: success ? s.stats.streak + 1 : resetStreak ? 0 : s.stats.streak,
               totalWordsLearned:
                 s.stats.totalWordsLearned +
-                (success && words[state.currentWordIndex].successCount >= 2 ? 1 : 0),
+                (success && words[state.currentWordIndex!]?.successCount >= 2 ? 1 : 0),
             };
 
             const nextWordlists = s.wordlists.map((wl) => {
@@ -487,7 +521,6 @@ export const useVocabStore = create<VocabStoreState>()(
               } else if (resetWordProgress) {
                 word.successCount = 0;
               }
-
               return { ...wl, words: newWords };
             });
 
@@ -495,8 +528,17 @@ export const useVocabStore = create<VocabStoreState>()(
               dailyStats: nextDailyStats,
               stats: nextStats,
               wordlists: nextWordlists,
+              isGoalMet: s.isGoalMet, // Preserve existing goal state, don't update it here
             };
           });
+        },
+
+        continueSession: () => {
+          set((s) => ({
+            isGoalMet: false,
+            sessionGoal: null, // Clear goal so it doesn't trigger again
+          }));
+          get().pickNextWord(false);
         },
 
         cacheDefinition: (wordText, def) => {
@@ -553,6 +595,7 @@ export const useVocabStore = create<VocabStoreState>()(
           sessionStartTime: Date.now(),
         },
         dailyStats: state.dailyStats,
+        lastSessionGoal: state.lastSessionGoal,
         definitionCache: state.definitionCache,
       }),
     }
