@@ -1,12 +1,15 @@
 import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Github,
   Moon,
   Sun,
-  Database,
   Image as ImageIcon,
   Shuffle,
+  Trophy,
+  Home,
 } from "lucide-react";
+import { useVocabStore, selectTodayChallengeScore } from "../store/vocabStore";
 
 interface NavBarProps {
   theme: "dark" | "light";
@@ -29,8 +32,18 @@ const NavBar: React.FC<NavBarProps> = ({
   onResetData,
   hasWords,
 }) => {
-  const iconButtonTone =
+  const iconButtonStyle =
     "rounded-lg bg-slate-100/60 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border border-transparent";
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isOnChallenge = location.pathname === "/challenge";
+  const todayScore = useVocabStore(selectTodayChallengeScore);
+  const hasChallengeScore = todayScore !== undefined;
+
+  const handleChallengeClick = () => {
+    navigate(isOnChallenge ? "/" : "/challenge");
+  };
 
   return (
     <header className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 dark:border-white/10 transition-colors duration-300">
@@ -43,8 +56,19 @@ const NavBar: React.FC<NavBarProps> = ({
 
         <div className="flex items-center gap-4">
           <button
+            onClick={handleChallengeClick}
+            className={
+              `p-2 ${(isOnChallenge || hasChallengeScore) ? iconButtonStyle : "rounded-lg bg-indigo-100/60 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/10 transition-colors border border-transparent"}`
+            }
+            aria-label={isOnChallenge ? "Back home" : "Daily Challenge"}
+            title={isOnChallenge ? "Back home" : "Daily Challenge"}
+          >
+            {isOnChallenge ? <Home className="w-4 h-4" /> : <Trophy className={`w-4 h-4 ${!hasChallengeScore ? "animate-bounce" : ""}`} />}
+          </button>
+
+          <button
             onClick={onToggleTheme}
-            className={`p-2 ${iconButtonTone}`}
+            className={`p-2 ${iconButtonStyle}`}
             aria-label="Toggle Theme"
           >
             {theme === "dark" ? (
@@ -57,7 +81,7 @@ const NavBar: React.FC<NavBarProps> = ({
           <div className="relative group">
             <button
               onClick={onToggleBackground}
-              className={`p-2 ${iconButtonTone}`}
+              className={`p-2 ${iconButtonStyle}`}
               aria-label="Toggle background image"
               title="Background image"
               type="button"
@@ -84,7 +108,7 @@ const NavBar: React.FC<NavBarProps> = ({
                           `https://bing.img.run/rand.php?ts=${Date.now()}`
                         );
                       }}
-                      className={`px-3 py-2 ${iconButtonTone}`}
+                      className={`px-3 py-2 ${iconButtonStyle}`}
                       aria-label="Use random Bing wallpaper"
                       title="Random"
                     >
@@ -100,18 +124,10 @@ const NavBar: React.FC<NavBarProps> = ({
             onClick={() =>
               window.open("https://github.com/mirpri/neonvocab", "_blank")
             }
-            className={`p-2 ${iconButtonTone}`}
+            className={`p-2 ${iconButtonStyle}`}
             aria-label="Open GitHub"
           >
             <Github className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={onResetData}
-            className="text-xs text-slate-500 dark:text-white/50 hover:text-red-500 dark:hover:text-red-400 transition-colors flex items-center gap-1"
-            type="button"
-          >
-            <Database className="w-3 h-3" /> Reset
           </button>
         </div>
       </div>

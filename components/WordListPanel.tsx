@@ -1,6 +1,7 @@
 import React from "react";
 import { Trash2, Pencil, ListPlus, X, ChevronDown, Check, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import type { WordItem, WordList } from "../types";
+import Importer from "./Importer";
 
 interface WordListPanelProps {
   activeWordlistName: string;
@@ -42,9 +43,10 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
   const wordlistMenuRef = React.useRef<HTMLDivElement | null>(null);
   const iconButtonTone =
     "p-2 rounded-lg bg-slate-100/60 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border border-slate-200/50 dark:border-white/10";
+  const visibleWordlists = React.useMemo(() => wordlists.filter((wl) => wl.id !== "daily-challenge"), [wordlists]);
   const activeWordlist = React.useMemo(
-    () => wordlists.find((wl) => wl.id === activeWordlistId) ?? null,
-    [wordlists, activeWordlistId]
+    () => visibleWordlists.find((wl) => wl.id === activeWordlistId) ?? null,
+    [visibleWordlists, activeWordlistId]
   );
 
   const filteredWords = React.useMemo(() => {
@@ -143,7 +145,7 @@ const WordListPanel: React.FC<WordListPanelProps> = ({
                 className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-lg overflow-hidden z-50"
               >
                 <div className="max-h-72 overflow-y-auto custom-scrollbar">
-                  {wordlists.map((wl) => {
+                  {visibleWordlists.map((wl) => {
                     const isActive = wl.id === activeWordlistId;
                     return (
                       <button

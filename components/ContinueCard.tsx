@@ -58,7 +58,7 @@ const ContinueCard: React.FC<ContinueCardProps> = ({
         type="button"
         onClick={onFlip}
         className="absolute right-3 top-3 p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
-        aria-label="Flip to importer"
+        aria-label="Flip to Importer"
         title="Flip to import words"
       >
         <RefreshCcw className="w-4 h-4" />

@@ -1,6 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { HashRouter, useNavigate } from 'react-router-dom';
 import App from './App';
+
+function HashRootRedirect() {
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    if (!window.location.hash || window.location.hash === '#') {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
+  return null;
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -10,6 +21,9 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <HashRouter>
+      <HashRootRedirect />
+      <App />
+    </HashRouter>
   </React.StrictMode>
 );

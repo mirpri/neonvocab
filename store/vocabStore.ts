@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { AppStats, DailyStats, DefinitionResponse, WordItem, WordList, SessionGoal } from "../types";
+import { loadWordlistPreset, parseWords, pickSeededRandomUnique } from "../services/wordlists";
 
 const PRELOAD_BUFFER_SIZE = 3;
 
@@ -29,6 +30,7 @@ const getDefaultStats = (): AppStats => ({
   sessionWordsCorrect: 0,
   sessionWordsTried: 0,
   sessionStartTime: Date.now(),
+  sessionPoints: 0,
 });
 
 type VocabStoreState = {
@@ -39,6 +41,7 @@ type VocabStoreState = {
 
   // Session state
   isLearning: boolean;
+  isDailyChallenge: boolean;
   currentWordIndex: number | null;
   wordQueue: number[];
   wordNonce: number; // increments when picking next word to force UI remounts
@@ -46,10 +49,12 @@ type VocabStoreState = {
   isGoalMet: boolean;
   sessionGoal: SessionGoal | null;
   lastSessionGoal: SessionGoal | null;
+  prevActiveWordlistId: string | null;
 
   // Stats (global across lists)
   stats: AppStats;
   dailyStats: Record<string, DailyStats>;
+  dailyChallengeScores: Record<string, number>;
 
   // Definition cache (global)
   definitionCache: Record<string, DefinitionResponse>;
@@ -66,12 +71,13 @@ type VocabStoreState = {
   removeWord: (wordId: string, wordText: string) => void;
 
   startLearning: (goal?: SessionGoal) => void;
+  startDailyChallenge: () => Promise<void>;
   endSession: () => void;
   pickNextWord: (isInitial?: boolean) => void;
   fillQueueIfNeeded: () => void;
   continueSession: () => void;
 
-  applyResult: (success: boolean, resetStreak: boolean, resetWordProgress?: boolean) => void;
+  applyResult: (success: boolean, resetStreak: boolean, resetWordProgress?: boolean, points?: number) => void;
 
   cacheDefinition: (wordText: string, def: DefinitionResponse) => void;
 
@@ -80,7 +86,7 @@ type VocabStoreState = {
 
 type PersistedSlice = Pick<
   VocabStoreState,
-  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache" | "lastSessionGoal"
+  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache" | "lastSessionGoal" | "dailyChallengeScores"
 >;
 
 const getActiveWords = (state: Pick<VocabStoreState, "wordlists" | "activeWordlistId">) => {
@@ -158,6 +164,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       dailyStats,
       definitionCache: {},
       lastSessionGoal: null,
+      dailyChallengeScores: {},
     };
   } catch {
     const fallbackLists = ensureNonEmptyWordlists(undefined);
@@ -169,6 +176,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       dailyStats: {},
       definitionCache: {},
       lastSessionGoal: null,
+      dailyChallengeScores: {},
     };
   }
 };
@@ -187,15 +195,18 @@ export const useVocabStore = create<VocabStoreState>()(
         dailyStats: persistedInit.dailyStats,
         definitionCache: persistedInit.definitionCache,
         lastSessionGoal: persistedInit.lastSessionGoal,
+        dailyChallengeScores: persistedInit.dailyChallengeScores,
 
         // Non-persisted session
         isLearning: false,
+        isDailyChallenge: false,
         currentWordIndex: null,
         wordQueue: [],
         isSessionComplete: false,
         isGoalMet: false,
         sessionGoal: null,
         wordNonce: 0,
+        prevActiveWordlistId: null,
 
         selectWordlist: (id) => {
           set(() => ({
@@ -356,17 +367,79 @@ export const useVocabStore = create<VocabStoreState>()(
               sessionStartTime: Date.now(),
               sessionWordsCorrect: 0,
               sessionWordsTried: 0,
+              sessionPoints: 0,
             },
           }));
           get().pickNextWord(true);
         },
 
-        endSession: () => {
-          set(() => ({
-            isLearning: false,
-            sessionGoal: null,
-            isGoalMet: false,
+        startDailyChallenge: async () => {
+          const raw = await loadWordlistPreset("sum");
+          const wordsRaw = parseWords(raw);
+          const today = new Date().toISOString().split("T")[0];
+          const picked = pickSeededRandomUnique(wordsRaw, 10, today);
+
+          const challengeWords: WordItem[] = picked.map((w) => ({
+            id: makeId(),
+            word: w,
+            successCount: 0,
+            isMastered: false,
+            totalAttempts: 0,
           }));
+
+          set((s) => {
+            const existing = s.wordlists.find((wl) => wl.id === "daily-challenge");
+            const nextLists = existing
+              ? s.wordlists.map((wl) =>
+                  wl.id === "daily-challenge" ? { ...wl, name: "Daily Challenge", words: challengeWords } : wl
+                )
+              : [...s.wordlists, { id: "daily-challenge", name: "Daily Challenge", words: challengeWords }];
+
+            return {
+              wordlists: nextLists,
+              prevActiveWordlistId: s.activeWordlistId,
+              activeWordlistId: "daily-challenge",
+            };
+          });
+
+          set(() => ({ isDailyChallenge: true }));
+          get().startLearning({ type: "time", target: 5 });
+        },
+
+        endSession: () => {
+          set((s) => {
+            // If quitting a daily challenge, persist today's score once
+            let nextDailyChallengeScores = s.dailyChallengeScores;
+            if (s.isDailyChallenge) {
+              const today = new Date().toISOString().split("T")[0];
+              if (nextDailyChallengeScores[today] === undefined) {
+                nextDailyChallengeScores = {
+                  ...nextDailyChallengeScores,
+                  [today]: s.stats.sessionPoints ?? 0,
+                };
+              }
+            }
+            // Restore previous wordlist if leaving daily challenge
+            let nextActive = s.activeWordlistId;
+            if (s.isDailyChallenge) {
+              const prev = s.prevActiveWordlistId;
+              const nonDailyLists = s.wordlists.filter((wl) => wl.id !== "daily-challenge");
+              if (prev && nonDailyLists.some((wl) => wl.id === prev)) {
+                nextActive = prev;
+              } else if (nonDailyLists.length > 0) {
+                nextActive = nonDailyLists[0].id;
+              }
+            }
+            return {
+              isLearning: false,
+              sessionGoal: null,
+              isGoalMet: false,
+              isDailyChallenge: false,
+              dailyChallengeScores: nextDailyChallengeScores,
+              activeWordlistId: nextActive,
+              prevActiveWordlistId: null,
+            };
+          });
         },
 
         pickNextWord: (isInitial = false) => {
@@ -375,38 +448,68 @@ export const useVocabStore = create<VocabStoreState>()(
           set((s) => {
             // Check Session Goal before picking next word
             if (!isInitial && s.sessionGoal && !s.isGoalMet) {
-                const { type, target } = s.sessionGoal;
-                let goalMet = false;
-                if (type === 'total_words' && s.stats.sessionWordsTried >= target) {
+              const { type, target } = s.sessionGoal;
+              let goalMet = false;
+              if (type === 'total_words' && s.stats.sessionWordsTried >= target) {
+                goalMet = true;
+              } else if (type === 'correct_words' && s.stats.sessionWordsCorrect >= target) {
+                goalMet = true;
+              } else if (type === 'time') {
+                const elapsedMin = (Date.now() - s.stats.sessionStartTime) / 60000;
+                if (elapsedMin >= target) {
                   goalMet = true;
-                } else if (type === 'correct_words' && s.stats.sessionWordsCorrect >= target) {
-                  goalMet = true;
-                } else if (type === 'time') {
-                  const elapsedMin = (Date.now() - s.stats.sessionStartTime) / 60000;
-                  if (elapsedMin >= target) {
-                    goalMet = true;
-                  }
                 }
-                
-                if (goalMet) {
-                    return { isGoalMet: true };
+              }
+              
+              if (goalMet) {
+                if (s.isDailyChallenge) {
+                  const today = new Date().toISOString().split("T")[0];
+                  const existingScore = s.dailyChallengeScores[today];
+                  const nextScore = existingScore ?? (s.stats.sessionPoints ?? 0);
+                  return {
+                    isGoalMet: true,
+                    dailyChallengeScores: { ...s.dailyChallengeScores, [today]: nextScore },
+                  };
                 }
+                return { isGoalMet: true };
+              }
+            }
+            const words = getActiveWords(state);
+            if (s.isDailyChallenge) {
+              // Sequential order: use tried count as index
+              const total = words.length;
+              const tried = s.stats.sessionWordsTried;
+              if (tried >= total || tried >= 15) {
+                const today = new Date().toISOString().split("T")[0];
+                const existingScore = s.dailyChallengeScores[today];
+                const nextScore = existingScore ?? (s.stats.sessionPoints ?? 0);
+                return {
+                  isGoalMet: true,
+                  isSessionComplete: true,
+                  currentWordIndex: null,
+                  wordQueue: [],
+                  dailyChallengeScores: { ...s.dailyChallengeScores, [today]: nextScore },
+                };
+              }
+              const nextIndex = Math.min(tried, total - 1);
+              return {
+                currentWordIndex: nextIndex,
+                wordQueue: [],
+                wordNonce: s.wordNonce + 1,
+              };
             }
 
-            const words = getActiveWords(state);
+            // Normal mode: random queue selection
             let nextIndex: number | null = null;
             let newQueue = [...s.wordQueue];
-
             const avoidIndex = !isInitial ? s.currentWordIndex : null;
             const hasAlternative =
               avoidIndex !== null
                 ? words.some((w, idx) => idx !== avoidIndex && w && !w.isMastered)
                 : false;
-
             while (newQueue.length > 0) {
               const candidateIndex = newQueue[0];
               newQueue = newQueue.slice(1);
-
               if (words[candidateIndex] && !words[candidateIndex].isMastered) {
                 if (hasAlternative && avoidIndex !== null && candidateIndex === avoidIndex) {
                   continue;
@@ -415,7 +518,6 @@ export const useVocabStore = create<VocabStoreState>()(
                 break;
               }
             }
-
             if (nextIndex === null) {
               const allCandidates = words.filter((w) => !w.isMastered);
               if (allCandidates.length === 0) {
@@ -425,17 +527,14 @@ export const useVocabStore = create<VocabStoreState>()(
                   wordQueue: [],
                 };
               }
-
               const currentId = avoidIndex !== null ? words[avoidIndex]?.id : null;
               const candidates =
                 currentId && allCandidates.length > 1
                   ? allCandidates.filter((w) => w.id !== currentId)
                   : allCandidates;
-
               const randomWord = candidates[Math.floor(Math.random() * candidates.length)];
               nextIndex = words.findIndex((w) => w.id === randomWord.id);
             }
-
             return {
               currentWordIndex: nextIndex,
               wordQueue: newQueue,
@@ -447,6 +546,7 @@ export const useVocabStore = create<VocabStoreState>()(
         fillQueueIfNeeded: () => {
           const state = get();
           if (!state.isLearning) return;
+          if (state.isDailyChallenge) return; // no preloading/queue for daily challenge
 
           const words = getActiveWords(state);
           if (words.length === 0) return;
@@ -481,7 +581,7 @@ export const useVocabStore = create<VocabStoreState>()(
           }
         },
 
-        applyResult: (success, resetStreak, resetWordProgress = true) => {
+        applyResult: (success, resetStreak, resetWordProgress = true, points = 0) => {
           const state = get();
           const words = getActiveWords(state);
           if (state.currentWordIndex === null) return;
@@ -503,6 +603,7 @@ export const useVocabStore = create<VocabStoreState>()(
               ...s.stats,
               sessionWordsTried: s.stats.sessionWordsTried + 1,
               sessionWordsCorrect: s.stats.sessionWordsCorrect + (success ? 1 : 0),
+              sessionPoints: (s.stats.sessionPoints ?? 0) + (points ?? 0),
               streak: success ? s.stats.streak + 1 : resetStreak ? 0 : s.stats.streak,
               totalWordsLearned:
                 s.stats.totalWordsLearned +
@@ -569,6 +670,7 @@ export const useVocabStore = create<VocabStoreState>()(
             currentWordIndex: null,
             wordQueue: [],
             isSessionComplete: false,
+            dailyChallengeScores: {},
           }));
 
           try {
@@ -597,10 +699,12 @@ export const useVocabStore = create<VocabStoreState>()(
           sessionWordsCorrect: 0,
           sessionWordsTried: 0,
           sessionStartTime: Date.now(),
+          sessionPoints: 0,
         },
         dailyStats: state.dailyStats,
         lastSessionGoal: state.lastSessionGoal,
         definitionCache: state.definitionCache,
+        dailyChallengeScores: state.dailyChallengeScores,
       }),
     }
   )
@@ -608,3 +712,10 @@ export const useVocabStore = create<VocabStoreState>()(
 
 export const selectActiveWordlist = (state: Pick<VocabStoreState, "wordlists" | "activeWordlistId">) =>
   state.wordlists.find((wl) => wl.id === state.activeWordlistId) ?? state.wordlists[0];
+
+export const selectTodayChallengeScore = (
+  state: Pick<VocabStoreState, "dailyChallengeScores">
+) => {
+  const today = new Date().toISOString().split("T")[0];
+  return state.dailyChallengeScores[today];
+};

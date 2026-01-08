@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo } from "react";
-import Importer from "./components/Importer";
+import { useNavigate, useMatch } from "react-router-dom";
+// Importer moved into WordListPanel
 import ContinueCard from "./components/ContinueCard";
 import LearningSession from "./components/LearningSession";
 import StatsBoard from "./components/StatsBoard";
@@ -7,95 +8,14 @@ import NavBar from "./components/Navbar";
 import WordListPanel from "./components/WordListPanel";
 import FinishPage from "./components/FinishPage";
 import GoalMetPanel from "./components/GoalMetCard";
+import DailyChallengeCard from "./components/DailyChallengeCard";
+import Flipper from "./components/Flipper";
 import { LogOut } from "lucide-react";
 import { fetchWordDefinition } from "./services/ai";
 import { useVocabStore, selectActiveWordlist } from "./store/vocabStore";
+import Importer from "./components/Importer";
 
-const FLIP_DURATION_MS = 600;
-
-function Flipper({
-  showBack,
-  front,
-  back,
-}: {
-  showBack: boolean;
-  front: React.ReactNode;
-  back: React.ReactNode;
-}) {
-  const [height, setHeight] = useState<number | undefined>(undefined);
-  // Track if we are actively flipping to control transition on height
-  const [isFlipping, setIsFlipping] = useState(false);
-  const frontRef = React.useRef<HTMLDivElement>(null);
-  const backRef = React.useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    setIsFlipping(true);
-    const t = setTimeout(() => setIsFlipping(false), FLIP_DURATION_MS);
-    return () => clearTimeout(t);
-  }, [showBack]);
-
-  useEffect(() => {
-    const target = showBack ? backRef.current : frontRef.current;
-    if (!target) return;
-
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setHeight(entry.contentRect.height);
-      }
-    });
-
-    ro.observe(target);
-    return () => ro.disconnect();
-  }, [showBack]);
-
-  return (
-    <div className="relative w-full" style={{ perspective: "1000px" }}>
-      <div
-        className="relative ease-in-out"
-        style={{
-          transformStyle: "preserve-3d",
-          transform: showBack ? "rotateY(180deg)" : "rotateY(0deg)",
-          height: height ? `${height}px` : "auto",
-          transition: `transform ${FLIP_DURATION_MS}ms ease-in-out, height ${
-            isFlipping ? FLIP_DURATION_MS : 0
-          }ms ease-in-out`,
-        }}
-      >
-        {/* Front */}
-        <div
-          ref={frontRef}
-          className="absolute top-0 left-0 w-full"
-          style={{
-            transform: "rotateY(0deg)",
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            MozBackfaceVisibility: "hidden",
-            pointerEvents: showBack ? "none" : "auto",
-          }}
-          aria-hidden={showBack}
-        >
-          {front}
-        </div>
-
-        {/* Back */}
-        <div
-          ref={backRef}
-          className="absolute top-0 left-0 w-full"
-          style={{
-            transform: "rotateY(180deg)",
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            MozBackfaceVisibility: "hidden",
-            pointerEvents: showBack ? "auto" : "none",
-          }}
-          aria-hidden={!showBack}
-        >
-          {back}
-        </div>
-      </div>
-    </div>
-  );
-}
+// Flipper moved to ./components/Flipper
 
 const STORAGE_KEY_THEME = "vocab-theme";
 const STORAGE_KEY_BG_ENABLED = "vocab-bg-enabled";
@@ -118,11 +38,14 @@ function App() {
   const definitionCache = useVocabStore((s) => s.definitionCache);
   const stats = useVocabStore((s) => s.stats);
   const dailyStats = useVocabStore((s) => s.dailyStats);
+  const isDailyChallenge = useVocabStore((s) => s.isDailyChallenge);
+  const dailyChallengeScores = useVocabStore((s) => s.dailyChallengeScores);
 
   const setWordSort = useVocabStore((s) => s.setWordSort);
   const importWords = useVocabStore((s) => s.importWords);
   const removeWord = useVocabStore((s) => s.removeWord);
   const startLearning = useVocabStore((s) => s.startLearning);
+  const startDailyChallenge = useVocabStore((s) => s.startDailyChallenge);
   const continueSession = useVocabStore((s) => s.continueSession);
   const endSession = useVocabStore((s) => s.endSession);
   const pickNextWord = useVocabStore((s) => s.pickNextWord);
@@ -170,24 +93,32 @@ function App() {
   });
   const [resolvedBackgroundUrl, setResolvedBackgroundUrl] =
     useState<string>("");
+  const [showDaily, setShowDaily] = useState<boolean>(false);
   const [showImporter, setShowImporter] = useState<boolean>(false);
+  const navigate = useNavigate();
+  const isChallengeRoute = Boolean(useMatch({ path: "/challenge", end: true }));
+
+  // Sync flip with route: /challenge opens Daily Challenge; others close it
+  useEffect(() => {
+    setShowDaily(isChallengeRoute);
+  }, [isChallengeRoute]);
 
   // (vocab state now lives in Zustand)
 
-  // End session with Escape
+  // End session with Escape (respect daily challenge confirm)
   useEffect(() => {
     if (!isLearning) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        endSession();
+        handleQuit();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isLearning, endSession]);
+  }, [isLearning, isDailyChallenge, isGoalMet, endSession]);
 
   // Theme Effect
   useEffect(() => {
@@ -238,10 +169,22 @@ function App() {
     fillQueueIfNeeded();
   }, [isLearning, wordQueue.length, words, fillQueueIfNeeded]);
 
-  // Fetch definitions for words in queue AND current word
+  // Fetch definitions for words in queue, current word, and lookahead (daily challenge)
   useEffect(() => {
-    const indicesToFetch = new Set([...wordQueue]);
+    const indicesToFetch = new Set<number>([...wordQueue]);
     if (currentWordIndex !== null) indicesToFetch.add(currentWordIndex);
+
+    if (isDailyChallenge) {
+      const total = words.length;
+      const baseIndex =
+        currentWordIndex !== null
+          ? currentWordIndex
+          : Math.min(stats.sessionWordsTried, Math.max(0, total - 1));
+      for (let i = 1; i <= 3; i++) {
+        const idx = baseIndex + i;
+        if (idx < total) indicesToFetch.add(idx);
+      }
+    }
 
     indicesToFetch.forEach((index) => {
       if (!words[index]) return;
@@ -252,7 +195,15 @@ function App() {
         cacheDefinition(wordText, def);
       });
     });
-  }, [wordQueue, currentWordIndex, words, definitionCache, cacheDefinition]);
+  }, [
+    wordQueue,
+    currentWordIndex,
+    words,
+    definitionCache,
+    cacheDefinition,
+    isDailyChallenge,
+    stats.sessionWordsTried,
+  ]);
 
   const currentWord =
     currentWordIndex !== null ? words[currentWordIndex] : null;
@@ -318,9 +269,18 @@ function App() {
   const handleResult = (
     success: boolean,
     resetStreak: boolean,
-    resetWordProgress: boolean = true
+    resetWordProgress: boolean = true,
+    points?: number
   ) => {
-    applyResult(success, resetStreak, resetWordProgress);
+    applyResult(success, resetStreak, resetWordProgress, points);
+  };
+
+  const handleQuit = () => {
+    if (isDailyChallenge && !isGoalMet) {
+      const msg = `Quit Daily Challenge?\nOnly your first try will be saved as today's final score.`;
+      if (!window.confirm(msg)) return;
+    }
+    endSession();
   };
 
   return (
@@ -337,7 +297,6 @@ function App() {
           : undefined
       }
     >
-      
       {!isLearning && (
         <NavBar
           theme={theme}
@@ -360,16 +319,19 @@ function App() {
           words={words}
           isLearning={isLearning}
           goal={sessionGoal}
+          isDailyChallenge={isDailyChallenge || showDaily}
+          dailyChallengeScores={dailyChallengeScores}
         />
 
         {!isLearning ? (
           <>
-            {(() => {
-              const showingImporter = words.length === 0 ? true : showImporter;
-              return (
-                <div className="relative z-20 mb-10">
+            <div className="relative z-20 mb-10 flex flex-col justify-center">
+              <Flipper
+                showBack={showDaily}
+                axis="vertical"
+                front={
                   <Flipper
-                    showBack={showingImporter}
+                    showBack={showImporter || words.length === 0}
                     front={
                       <ContinueCard
                         words={words}
@@ -385,9 +347,17 @@ function App() {
                       />
                     }
                   />
-                </div>
-              );
-            })()}
+                }
+                back={
+                  <DailyChallengeCard
+                    onFlip={() => {
+                      navigate("/", { replace: false });
+                    }}
+                    onStart={startDailyChallenge}
+                  />
+                }
+              />
+            </div>
 
             <WordListPanel
               activeWordlistName={activeWordlist?.name ?? "Your Word List"}
@@ -408,49 +378,52 @@ function App() {
           <>
             <div className="w-full text-sm text-slate-500 dark:text-white/60 mx-auto w-full items-end flex justify-end">
               <button
-                onClick={endSession}
+                onClick={handleQuit}
                 className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
               >
                 <LogOut className="w-4 h-4" /> End Session
               </button>
             </div>
-          <div className="flex flex-col items-center justify-center flex-1">
-            {isGoalMet ? (
-              <GoalMetPanel
-                stats={stats}
-                goal={sessionGoal}
-                onContinue={continueSession}
-                onQuit={endSession}
-              />
-            ) : currentWord && !isSessionComplete ? (
-              <LearningSession
-                key={`${currentWord.id}-${wordNonce}`}
-                wordItem={currentWord}
-                definitionData={definitionCache[currentWord.word]}
-                onResult={handleResult}
-                onNext={() => pickNextWord(false)}
-              />
-            ) : isSessionComplete ? (
-              <FinishPage
-                wordsCount={words.length}
-                daysActiveCount={Object.keys(dailyStats).length}
-                totalMasteredCount={stats.totalWordsLearned}
-                onBack={endSession}
-              />
-            ) : (
-              <div className="text-center">
-                <p className="text-slate-500 dark:text-slate-400">
-                  No words available
-                </p>
-                <button
-                  onClick={endSession}
-                  className="text-indigo-500 dark:text-indigo-400 underline mt-2"
-                >
-                  Go back
-                </button>
-              </div>
-            )}
-          </div>
+            <div className="flex flex-col items-center justify-center flex-1">
+              {isGoalMet ? (
+                <GoalMetPanel
+                  stats={stats}
+                  goal={sessionGoal}
+                  onContinue={continueSession}
+                  onQuit={handleQuit}
+                  allowContinue={!isDailyChallenge ? true : false}
+                  isDailyChallenge={isDailyChallenge}
+                />
+              ) : currentWord && !isSessionComplete ? (
+                <LearningSession
+                  key={`${currentWord.id}-${wordNonce}`}
+                  wordItem={currentWord}
+                  definitionData={definitionCache[currentWord.word]}
+                  onResult={handleResult}
+                  onNext={() => pickNextWord(false)}
+                  isDailyChallenge={isDailyChallenge}
+                />
+              ) : isSessionComplete ? (
+                <FinishPage
+                  wordsCount={words.length}
+                  daysActiveCount={Object.keys(dailyStats).length}
+                  totalMasteredCount={stats.totalWordsLearned}
+                  onBack={endSession}
+                />
+              ) : (
+                <div className="text-center">
+                  <p className="text-slate-500 dark:text-slate-400">
+                    No words available
+                  </p>
+                  <button
+                    onClick={endSession}
+                    className="text-indigo-500 dark:text-indigo-400 underline mt-2"
+                  >
+                    Go back
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
         <footer className="my-6 text-center text-slate-400 dark:text-white/30 text-sm relative transition-colors duration-300">

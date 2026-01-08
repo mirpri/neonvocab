@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { WordItem, GameState, DefinitionResponse } from "../types";
-import { ArrowRight, Eye, Lightbulb } from "lucide-react";
+import { ArrowRight, Eye, LandPlot, Lightbulb } from "lucide-react";
 
 interface LearningSessionProps {
   wordItem: WordItem;
@@ -8,9 +8,11 @@ interface LearningSessionProps {
   onResult: (
     success: boolean,
     resetStreak: boolean,
-    resetWordProgress?: boolean
+    resetWordProgress?: boolean,
+    points?: number
   ) => void;
   onNext: () => void;
+  isDailyChallenge?: boolean;
 }
 
 const LearningSession: React.FC<LearningSessionProps> = ({
@@ -18,9 +20,12 @@ const LearningSession: React.FC<LearningSessionProps> = ({
   definitionData,
   onResult,
   onNext,
+  isDailyChallenge = false,
 }) => {
   const [input, setInput] = useState("");
-  const [state, setState] = useState<GameState>(GameState.LOADING_DEFINITION);
+  const [state, setState] = useState<GameState>(() =>
+    definitionData ? GameState.WAITING_FOR_INPUT : GameState.LOADING_DEFINITION
+  );
   const [hintLevel, setHintLevel] = useState(0); // 0: None, 1: Length, 2+: Letters
   const [isShaking, setIsShaking] = useState(false);
   const [mistakes, setMistakes] = useState(0);
@@ -59,7 +64,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({
     // hintLevel 2 means 1 char revealed.
     const charsRevealed = level > 1 ? level - 1 : 0;
     const wordLength = wordItem.word.length;
-    if (charsRevealed >= wordLength / 2) {
+    if (charsRevealed >= wordLength / 2 || (isDailyChallenge && level > 5)) {
       return true; // Limit exceeded
     }
     return false;
@@ -88,20 +93,25 @@ const LearningSession: React.FC<LearningSessionProps> = ({
       // x=0 -> allow hintLevel 0..3
       // x=1 -> allow hintLevel 0..2
       // x=2 -> allow hintLevel 0..1
-      const maxHintLevelExclusive = Math.max(
-        0,
-        4 - (wordItem.successCount ?? 0)
-      );
-      const isSuccess = hintLevel < maxHintLevelExclusive;
+      let maxHintLevelExclusive = 5;
+      if (!isDailyChallenge) {
+        maxHintLevelExclusive = Math.max(0, 3 - (wordItem.successCount ?? 0));
+      }
+      const isSuccess = hintLevel <= maxHintLevelExclusive;
       setWasCounted(isSuccess);
 
-      if (isSuccess) {
-        // Success! Increment count, don't reset streak.
-        onResult(true, false);
+      if (isDailyChallenge) {
+        let points = 0;
+        if (hintLevel <= 5) {
+          points = Math.max(0, 10 - hintLevel);
+        }
+        onResult(true, false, true, points);
       } else {
-        // Correct answer but too many hints.
-        // Not a success (don't increment), but don't reset streak or word progress either.
-        onResult(false, false, false);
+        if (isSuccess) {
+          onResult(true, false);
+        } else {
+          onResult(false, false, false);
+        }
       }
     } else {
       triggerError();
@@ -112,7 +122,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({
     setIsShaking(false);
     setTimeout(() => setIsShaking(true), 10);
     setTimeout(() => {
-      setIsShaking(false)
+      setIsShaking(false);
       inputRef.current?.focus();
       setInput("");
     }, 510);
@@ -134,8 +144,12 @@ const LearningSession: React.FC<LearningSessionProps> = ({
   const handleGiveUp = () => {
     setState(GameState.SHOWING_ANSWER);
     setWasCounted(null);
-    // Give up: Not success, reset streak, reset word progress.
-    onResult(false, true, true);
+    // Give up: Not success, reset streak, reset word progress. Zero points in challenge.
+    if (isDailyChallenge) {
+      onResult(false, true, true, 0);
+    } else {
+      onResult(false, true, true);
+    }
   };
 
   const handleHint = () => {
@@ -210,19 +224,27 @@ const LearningSession: React.FC<LearningSessionProps> = ({
       className={`w-full ${containerWidthClass} mx-auto relative px-4 transition-all duration-200 animate-pop`}
     >
       <div className={cardStyle}>
-        {/* Progress Dots */}
-        <div className="flex justify-center gap-2 mb-6">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className={`h-2 w-12 rounded-full transition-colors duration-500 ${
-                i < wordItem.successCount
-                  ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]"
-                  : "bg-slate-200 dark:bg-slate-700"
-              }`}
-            />
-          ))}
-        </div>
+        {isDailyChallenge ? (
+          <div className="flex justify-center mb-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center gap-2">
+              <LandPlot />
+              Daily Challenge
+            </span>
+          </div>
+        ) : (
+          <div className="flex justify-center gap-2 mb-6">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 w-12 rounded-full transition-colors duration-500 ${
+                  i < wordItem.successCount
+                    ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]"
+                    : "bg-slate-200 dark:bg-slate-700"
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Question Area */}
         <div className="mb-8 text-center">

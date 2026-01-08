@@ -24,6 +24,7 @@ export interface AppStats {
   sessionWordsCorrect: number;
   sessionWordsTried: number;
   sessionStartTime: number;
+  sessionPoints?: number;
 }
 
 export interface DailyStats {

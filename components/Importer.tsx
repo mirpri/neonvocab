@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import { Plus, Save, RefreshCcw, Check, Trash2 } from "lucide-react";
-import highschoolPreset from "../wordlists/Highschool.txt?raw";
-import toeflPreset from "../wordlists/TOEFL.txt?raw";
-import cetPreset from "../wordlists/CET.txt?raw";
-import { on } from "events";
+import { loadWordlistPreset } from "../services/wordlists";
 
 interface ImporterProps {
   onImport: (text: string) => void;
@@ -24,7 +21,8 @@ const Importer: React.FC<ImporterProps> = ({ onImport, hasWords, onFlip }) => {
     }
   };
 
-  const loadPreset = (name: string, content: string) => {
+  const loadPreset = async (name: string) => {
+    const content = await loadWordlistPreset(name as any);
     setText(content);
     setLoadedPreset(name);
   };
@@ -61,47 +59,47 @@ const Importer: React.FC<ImporterProps> = ({ onImport, hasWords, onFlip }) => {
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           type="button"
-          onClick={() => loadPreset("highschool", highschoolPreset)}
-          disabled={loadedPreset === "highschool"}
+          onClick={() => loadPreset("Highschool")}
+          disabled={loadedPreset === "Highschool"}
           className={
             buttonStyle +
             " " +
-            (loadedPreset === "highschool"
+            (loadedPreset === "Highschool"
               ? importButtonStyleActive
               : importButtonStyleNormal)
           }
         >
-          {loadedPreset === "highschool" && <Check className="w-3.5 h-3.5" />}
+          {loadedPreset === "Highschool" && <Check className="w-3.5 h-3.5" />}
           Import Highschool
         </button>
         <button
           type="button"
-          onClick={() => loadPreset("cet", cetPreset)}
-          disabled={loadedPreset === "cet"}
+          onClick={() => loadPreset("CET")}
+          disabled={loadedPreset === "CET"}
           className={
             buttonStyle +
             " " +
-            (loadedPreset === "cet"
+            (loadedPreset === "CET"
               ? importButtonStyleActive
               : importButtonStyleNormal)
           }
         >
-          {loadedPreset === "cet" && <Check className="w-3.5 h-3.5" />}
+          {loadedPreset === "CET" && <Check className="w-3.5 h-3.5" />}
           Import CET-6
         </button>
         <button
           type="button"
-          onClick={() => loadPreset("toefl", toeflPreset)}
-          disabled={loadedPreset === "toefl"}
+          onClick={() => loadPreset("TOEFL")}
+          disabled={loadedPreset === "TOEFL"}
           className={
             buttonStyle +
             " " +
-            (loadedPreset === "toefl"
+            (loadedPreset === "TOEFL"
               ? importButtonStyleActive
               : importButtonStyleNormal)
           }
         >
-          {loadedPreset === "toefl" && <Check className="w-3.5 h-3.5" />}
+          {loadedPreset === "TOEFL" && <Check className="w-3.5 h-3.5" />}
           Import TOEFL
         </button>
         <button
