@@ -440,7 +440,7 @@ function App() {
             ) : (
               <div className="text-center">
                 <p className="text-slate-500 dark:text-slate-400">
-                  No words available or loading...
+                  No words available
                 </p>
                 <button
                   onClick={endSession}

@@ -66,10 +66,10 @@ const ContinueCard: React.FC<ContinueCardProps> = ({
 
       <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-2">
         <ChartSpline className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
-        Continue Learning
+        {mastered > 0 ? (total === mastered ? "Finished" : "Continue Learning") : "Start Learning"}
       </h2>
       <p className="text-slate-500 dark:text-slate-400 mb-4">
-        Keep the momentum going — you're doing great!
+        {mastered > 0 ? (total === mastered ? "Well done! You've mastered all the words." : "Keep the momentum going — you're doing great!") : "It's time to start learning some new words!"}
       </p>
 
       <div className="mb-6">
@@ -79,7 +79,7 @@ const ContinueCard: React.FC<ContinueCardProps> = ({
         </div>
         <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
           <div
-            className="h-full bg-indigo-500 transition-all"
+            className="h-full bg-gradient-to-r from-indigo-300 dark:from-indigo-700 to-indigo-500 dark:to-indigo-400 rounded-full transition-all"
             style={{ width: `${percent}%` }}
           />
         </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppStats, DailyStats, WordItem, SessionGoal } from '../types';
-import { Flame, Trophy, Zap, CalendarClock, GraduationCap, Target, Clock, Hash, CheckCircle2 } from 'lucide-react';
+import { Flame, Trophy, Zap, CalendarClock, GraduationCap, Target } from 'lucide-react';
 
 interface StatsBoardProps {
   stats: AppStats;
@@ -278,7 +278,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
         <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col transition-colors duration-300">
             <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mb-2">Last 7 Days</p>
             <div className="flex-1 h-24 overflow-x-auto">
-              <div className="flex items-end justify-between gap-2 h-24 min-w-[320px]">
+              <div className="flex h-full items-end justify-between gap-2 h-24 min-w-[320px]">
                 {chartData.map((d, i) => {
                     const triedH = (d.data.tried / maxVal) * 100;
                     const successH = (d.data.success / maxVal) * 100;
@@ -300,10 +300,10 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ stats, dailyStats, words, isLea
                                      ></div>
                                  )}
                              </div>
-                             <span className="text-[10px] text-slate-500 font-mono">{d.label}</span>
+                             <span className="text-[11px] text-slate-500 font-mono">{d.label}</span>
                              
                              {/* Tooltip */}
-                             <div className="absolute top-0 right-0 bg-white dark:bg-black/80 text-slate-900 dark:text-white text-xs px-2 py-1 rounded hidden group-hover:block z-20 whitespace-nowrap border border-slate-200 dark:border-white/10 shadow-lg">
+                             <div className="absolute top-0 right-0 text-slate-900/60 dark:text-white/60 text-[10px] px-2 py-1 rounded hidden group-hover:block z-20 whitespace-nowrap">
                                  {d.data.success}/{d.data.tried}
                              </div>
                         </div>

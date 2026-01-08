@@ -3,6 +3,7 @@ import { Plus, Save, RefreshCcw, Check, Trash2 } from "lucide-react";
 import highschoolPreset from "../wordlists/Highschool.txt?raw";
 import toeflPreset from "../wordlists/TOEFL.txt?raw";
 import cetPreset from "../wordlists/CET.txt?raw";
+import { on } from "events";
 
 interface ImporterProps {
   onImport: (text: string) => void;
@@ -19,6 +20,7 @@ const Importer: React.FC<ImporterProps> = ({ onImport, hasWords, onFlip }) => {
       onImport(text);
       setText("");
       setLoadedPreset(null);
+      onFlip && onFlip();
     }
   };
 
