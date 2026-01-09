@@ -424,8 +424,8 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
         <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mb-2">
           Last 7 Days
         </p>
-        <div className="flex-1 h-24 overflow-x-auto">
-          <div className="flex h-full items-end justify-between gap-2 h-24 min-w-[320px]">
+        <div className="flex-1 h-24 min-h-[96px] overflow-x-auto">
+          <div className="flex h-full items-end justify-between gap-2 h-24">
             {chartData.map((d: any, i) => {
               if (isDailyChallenge) {
                 const h = d.data.points;
@@ -445,8 +445,8 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
                     <span className="text-[11px] text-slate-500 font-mono">
                       {d.label}
                     </span>
-                    <div className="absolute top-0 right-0 text-slate-900/60 dark:text-white/60 text-[10px] px-2 py-1 rounded hidden group-hover:block z-20 whitespace-nowrap">
-                      {d.data.points ?? 0}
+                    <div className="absolute top-1 right-1 text-slate-900/60 dark:text-white/60 text-[10px] hidden group-hover:block z-20 whitespace-nowrap">
+                      {d.data.points ?? "--"}
                     </div>
                   </div>
                 );
@@ -475,7 +475,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
                   <span className="text-[11px] text-slate-500 font-mono">
                     {d.label}
                   </span>
-                  <div className="absolute top-0 right-0 text-slate-900/60 dark:text-white/60 text-[10px] px-2 py-1 rounded hidden group-hover:block z-20 whitespace-nowrap">
+                  <div className="absolute top-1 right-1 text-slate-900/60 dark:text-white/60 text-[10px] hidden group-hover:block z-20 whitespace-nowrap">
                     {d.data.success}/{d.data.tried}
                   </div>
                 </div>

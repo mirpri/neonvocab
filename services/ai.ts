@@ -5,6 +5,26 @@ import { config } from "../config";
 const definitionMemoryCache = new Map<string, DefinitionResponse>();
 const definitionInFlight = new Map<string, Promise<DefinitionResponse>>();
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const withRetries = async <T>(
+  fn: () => Promise<T>,
+  { attempts = 3, baseDelayMs = 200 }: { attempts?: number; baseDelayMs?: number } = {}
+): Promise<T> => {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      const jitter = Math.random() * 100;
+      await sleep(baseDelayMs * attempt + jitter);
+    }
+  }
+  throw lastError;
+};
+
 // --- GEMINI IMPLEMENTATION ---
 const fetchGeminiDefinition = async (
   word: string
@@ -138,16 +158,20 @@ export const fetchWordDefinition = async (
   const requestPromise = (async (): Promise<DefinitionResponse> => {
     try {
       let result: DefinitionResponse;
-      if (config.provider === "openai") {
-        console.log("Using OpenAI for definition");
-        result = await fetchOpenAIDefinition(rawWord);
-      } else if (config.provider === "proxy") {
-        console.log("Using proxy backend for definition:", config.apiBaseUrl);
-        result = await fetchProxyDefinition(rawWord);
-      } else {
+      const providerFn = (() => {
+        if (config.provider === "openai") {
+          console.log("Using OpenAI for definition");
+          return () => fetchOpenAIDefinition(rawWord);
+        }
+        if (config.provider === "proxy") {
+          console.log("Using proxy backend for definition:", config.apiBaseUrl);
+          return () => fetchProxyDefinition(rawWord);
+        }
         console.log("Using Gemini for definition");
-        result = await fetchGeminiDefinition(rawWord);
-      }
+        return () => fetchGeminiDefinition(rawWord);
+      })();
+
+      result = await withRetries(providerFn, { attempts: 3, baseDelayMs: 250 });
 
       definitionMemoryCache.set(cacheKey, result);
       return result;
@@ -158,7 +182,6 @@ export const fetchWordDefinition = async (
         partOfSpeech: "unknown",
         exampleSentence: "...",
       };
-      definitionMemoryCache.set(cacheKey, fallback);
       return fallback;
     } finally {
       definitionInFlight.delete(cacheKey);

@@ -1,12 +1,40 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import Database from 'better-sqlite3';
 import { GoogleGenAI, Type } from "@google/genai";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const CACHE_ENABLED = String(process.env.CACHE_ENABLED ?? 'true').toLowerCase() !== 'false';
+
+let selectDefinition;
+let upsertDefinition;
+if (CACHE_ENABLED) {
+    const dbPath = process.env.DB_PATH || path.resolve(process.cwd(), 'data/vocab.db');
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    const db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+    db.exec(`CREATE TABLE IF NOT EXISTS definitions (
+        word TEXT PRIMARY KEY,
+        definition TEXT NOT NULL,
+        partOfSpeech TEXT,
+        exampleSentence TEXT,
+        createdAt INTEGER NOT NULL
+    )`);
+    selectDefinition = db.prepare('SELECT definition, partOfSpeech, exampleSentence FROM definitions WHERE word = ?');
+    upsertDefinition = db.prepare(`INSERT INTO definitions (word, definition, partOfSpeech, exampleSentence, createdAt)
+        VALUES (@word, @definition, @partOfSpeech, @exampleSentence, @createdAt)
+        ON CONFLICT(word) DO UPDATE SET
+            definition=excluded.definition,
+            partOfSpeech=excluded.partOfSpeech,
+            exampleSentence=excluded.exampleSentence,
+            createdAt=excluded.createdAt`);
+}
 
 // Allow requests from your frontend domain
 app.use(cors({
@@ -93,9 +121,17 @@ const fetchOpenAIDefinition = async (word) => {
 
 app.get('/definition', async (req, res) => {
     const { word } = req.query;
+    const normalizedWord = typeof word === 'string' ? word.trim().toLowerCase() : '';
 
-    if (!word || typeof word !== 'string') {
+    if (!normalizedWord) {
         return res.status(400).json({ error: "Word parameter is required" });
+    }
+
+    if (CACHE_ENABLED) {
+        const cached = selectDefinition.get(normalizedWord);
+        if (cached) {
+            return res.json(cached);
+        }
     }
 
     try {
@@ -103,9 +139,19 @@ app.get('/definition', async (req, res) => {
         let result;
 
         if (provider === 'openai') {
-            result = await fetchOpenAIDefinition(word);
+            result = await fetchOpenAIDefinition(normalizedWord);
         } else {
-            result = await fetchGeminiDefinition(word);
+            result = await fetchGeminiDefinition(normalizedWord);
+        }
+
+        if (CACHE_ENABLED) {
+            upsertDefinition.run({
+                word: normalizedWord,
+                definition: result.definition,
+                partOfSpeech: result.partOfSpeech,
+                exampleSentence: result.exampleSentence,
+                createdAt: Date.now()
+            });
         }
         
         res.json(result);
@@ -117,33 +163,6 @@ app.get('/definition', async (req, res) => {
             partOfSpeech: "error",
             exampleSentence: "Please try again later."
         });
-    }
-});
-
-app.get('/bing-image', async (req, res) => {
-    try {
-        const mkt = typeof req.query.mkt === 'string' ? req.query.mkt : 'en-US';
-        const idx = typeof req.query.idx === 'string' ? req.query.idx : '0';
-        const n = typeof req.query.n === 'string' ? req.query.n : '1';
-
-        const url = `https://www.bing.com/HPImageArchive.aspx?format=js&idx=${encodeURIComponent(idx)}&n=${encodeURIComponent(n)}&mkt=${encodeURIComponent(mkt)}`;
-        const response = await fetch(url);
-        if (!response.ok) {
-            return res.status(502).json({ error: `Bing upstream error: ${response.status}` });
-        }
-
-        const data = await response.json();
-        const relative = data?.images?.[0]?.url;
-        if (!relative) {
-            return res.status(502).json({ error: 'Bing response missing image URL' });
-        }
-
-        const imageUrl = relative.startsWith('http') ? relative : `https://www.bing.com${relative}`;
-        res.set('Cache-Control', 'public, max-age=3600');
-        return res.json({ url: imageUrl });
-    } catch (error) {
-        console.error('Backend Error (/bing-image):', error);
-        return res.status(500).json({ error: 'Failed to fetch Bing daily image.' });
     }
 });
 
