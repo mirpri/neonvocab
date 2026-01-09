@@ -188,17 +188,8 @@ const LearningSession: React.FC<LearningSessionProps> = ({
     return display.trim();
   };
 
-  if (state === GameState.LOADING_DEFINITION) {
-    return (
-      <div
-        className={`w-full ${containerWidthClass} mx-auto bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-2xl animate-pulse border border-slate-200 dark:border-slate-700 transition-all duration-200`}
-      >
-        <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/4 mb-4"></div>
-        <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded w-full mb-6"></div>
-        <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-      </div>
-    );
-  }
+  // Remove early-return skeleton to keep the card container mounted
+  // and avoid a flash when switching from LOADING to WAITING.
 
   const showNoIncrementNote =
     state === GameState.SUCCESS && wasCounted === false;
@@ -219,12 +210,20 @@ const LearningSession: React.FC<LearningSessionProps> = ({
   if (isShaking) {
     cardStyle += " animate-shake border-red-500";
   }
+
   return (
     <div
       className={`w-full ${containerWidthClass} mx-auto relative px-4 transition-all duration-200 animate-pop`}
     >
       <div className={cardStyle}>
-        {isDailyChallenge ? (
+        {state === GameState.LOADING_DEFINITION && (
+          <div className="animate-pulse">
+            <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/4 mb-4"></div>
+            <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded w-full mb-6"></div>
+            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+          </div>
+        )}
+        {state !== GameState.LOADING_DEFINITION && (isDailyChallenge ? (
           <div className="flex justify-center mb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center gap-2">
               <LandPlot />
@@ -244,9 +243,10 @@ const LearningSession: React.FC<LearningSessionProps> = ({
               />
             ))}
           </div>
-        )}
+        ))}
 
         {/* Question Area */}
+        {state !== GameState.LOADING_DEFINITION && (
         <div className="mb-8 text-center">
           <span className="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
             {definitionData?.partOfSpeech}
@@ -260,8 +260,10 @@ const LearningSession: React.FC<LearningSessionProps> = ({
             </p>
           </div>
         </div>
+        )}
 
         {/* Input Area */}
+        {state !== GameState.LOADING_DEFINITION && (
         <form onSubmit={handleSubmit} className="relative">
           <input
             ref={inputRef}
@@ -313,6 +315,7 @@ const LearningSession: React.FC<LearningSessionProps> = ({
             </button>
           )}
         </form>
+        )}
 
         {/* Hint Display */}
         {hintLevel > 0 && state === GameState.WAITING_FOR_INPUT && (
