@@ -1,7 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Github,
   Moon,
   Sun,
   Image as ImageIcon,
@@ -129,16 +128,6 @@ const NavBar: React.FC<NavBarProps> = ({
             title={isOnSettings ? "Back home" : "Settings"}
           >
             {isOnSettings ? <Home className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
-          </button>
-
-          <button
-            onClick={() =>
-              window.open("https://github.com/mirpri/neonvocab", "_blank")
-            }
-            className={`p-2 ${iconButtonStyle}`}
-            aria-label="Open GitHub"
-          >
-            <Github className="w-4 h-4" />
           </button>
         </div>
       </div>
