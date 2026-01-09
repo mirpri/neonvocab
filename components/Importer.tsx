@@ -110,7 +110,7 @@ const Importer: React.FC<ImporterProps> = ({ onImport, hasWords, onFlip }) => {
           }}
           disabled={loadedPreset === null}
           className={
-            buttonStyle +" "+importButtonStyleNormal
+            buttonStyle + " " + importButtonStyleNormal
           }
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -118,7 +118,7 @@ const Importer: React.FC<ImporterProps> = ({ onImport, hasWords, onFlip }) => {
       </div>
 
       <textarea
-        className="w-full h-40 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none font-mono text-sm mb-4"
+        className="w-full h-40 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none font-mono text-sm mb-4 importer-scrollbar"
         placeholder="e.g. ephemeral, serendipity, obsequious"
         value={text}
         onChange={(e) => setText(e.target.value)}

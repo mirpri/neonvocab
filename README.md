@@ -1,59 +1,63 @@
 # NeonVocab
 
-A modern, AI-powered vocabulary learning application built with React 19, TypeScript, and Google Gemini. Master new words with an elegant, distraction-free interface featuring dynamic theming and smart progress tracking.
+A modern, AI-powered vocabulary learning application built with React 19, TypeScript, and Google Gemini. Master new words with an elegant, distraction-free interface featuring dynamic theming and smart progress tracking. Not just a web app—now a blazing fast desktop application powered by **Tauri**.
 
-Experience now on https://mirpri.github.io/neonvocab
+Experience web version: https://mirpri.github.io/neonvocab
 
 ![Screenshot](res/screenshot1.png)
 
 Built with the help of
-
 ![Google Ai Studio](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
 ## ✨ Features
 
 - **🧠 AI-Powered Definitions**: Automatically fetches definitions, parts of speech, and example sentences using Google's Gemini API.
+- **🖥️ Desktop Native Experience**:
+  - **Tauri Integration**: Lightweight, secure, and fast desktop application.
+  - **Custom Settings**: Configure your AI provider (Gemini/OpenAI/Proxy) and API keys directly in the app.
+  - **Immersive Mode**: Press **F11** to toggle fullscreen for a distraction-free learning session.
+  - **Secure**: Right-click context menus and developer tools are disabled for a focused, app-like feel.
 - **📚 Smart Learning System**: 
   - Spaced repetition-inspired mastery tracking.
   - Words are marked as "Mastered" after 3 successful attempts.
   - "Stuck" prevention logic ensures you learn effectively.
 - **🎨 Dynamic Theming**: 
   - Beautiful Light and Dark modes.
-  - Animated, soothing gradient backgrounds (Paper White for Light, Deep Midnight for Dark).
-  - Smooth transitions and glassmorphism effects.
+  - Animated, soothing gradient backgrounds.
+  - Custom scrollbar styling and optimized UI.
 - **⚡ Interactive Gameplay**:
   - Spelling challenges with immediate feedback.
-  - Progressive Hint System (Length → Reveal Letters).
-  - Shake animations for errors, confetti/pop effects for success.
+  - Progressive Hint System.
+  - Shake animations and confetti celebrations.
 - **📊 Stats & Progress**:
-  - Track your daily streak.
-  - Monitor learning velocity (words/minute).
-  - Visualize total words mastered and days active.
-- **💾 Local Persistence**: All your words, progress, and settings are saved automatically to your browser.
+  - Track daily streaks and learning velocity.
+  - Visualize mastery progress.
+- **💾 Local Persistence**: All data and settings are saved locally on your device.
 
 ## 🛠️ Tech Stack
 
 - **Framework**: [React 19](https://react.dev/)
+- **Desktop Engine**: [Tauri v2](https://tauri.app/)
 - **Build Tool**: [Vite](https://vitejs.dev/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **AI Integration**: [Google GenAI SDK](https://www.npmjs.com/package/@google/genai)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand) (see `store/vocabStore.ts`)
-- **Icons**: [Lucide React](https://lucide.dev/)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- A Google Gemini API Key (Get one [here](https://aistudio.google.com/app/apikey))
+- Rust (for Tauri development)
+- A Google Gemini API Key
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/vocabmaster-ai.git
-   cd vocabmaster-ai
+   git clone https://github.com/mirpri/neonvocab.git
+   cd neonvocab
    ```
 
 2. **Install dependencies**
@@ -63,61 +67,30 @@ Built with the help of
    yarn install
    ```
 
-3. **Configure Environment**
-   Create a `.env` file in the root directory. You have two options for configuration:
-
-   **Option A: Serverless / Static Site**
-   Do not set `VITE_API_BASE_URL` and setup openai ***or*** gemini key and model.
-
-   **Option B: Secure Backend (Recommended for Production)**
-   *Use this if you are running the provided Node.js backend.*
-   ```env
-   # The frontend will ignore local keys and ask this URL instead
-   VITE_API_BASE_URL=https://your-backend-url.com
+3. **Run Desktop App (Tauri)**
+   ```bash
+   npm run tauri dev
+   # or
+   yarn tauri dev
    ```
 
-4. **Run the development server**
+4. **Run Web App Only**
    ```bash
    npm run dev
-   # or
-   yarn dev
    ```
 
-5. **Open your browser**
-   Navigate to `http://localhost:5173` to start learning!
+### Configuration
+You can configure your AI provider directly within the app:
+1. Click the **Settings** (gear icon) in the navigation bar.
+2. Choose your provider: **Proxy**, **Gemini**, or **OpenAI**.
+3. Enter your API Key/Base URL if required.
+4. Save to persist settings locally.
 
-## Backend Setup (Optional)
-
-To protect your API keys, you can run the included Node.js backend.
-
-1.  **Navigate to backend folder**: `cd backend`
-2.  **Install dependencies**: `npm install`
-3.  **Create .env**:
-    ```env
-    GEMINI_API_KEY=your_secret_key
-    FRONTEND_URL=https://your-github-pages-url.github.io
-    PORT=3000
-    ```
-4.  **Start Server**: `npm start`
-5.  **Update Frontend**: Set `VITE_API_BASE_URL=http://localhost:3000` (or your production URL) in the frontend `.env`.
-
-## Usage
-
-1. **Add Words**: Click the "Import" section to paste a list of words you want to learn.
-2. **Start Session**: Click "Start Learning" to begin.
-3. **Learn**: 
-   - Read the definition and example sentence.
-   - Type the word.
-   - Use hints if you get stuck (Eye icon for "I don't know", Bulb icon for hints).
-4. **Mastery**: Correctly answer a word 3 times to master it.
-5. **Theme**: Toggle between Light and Dark mode using the sun/moon icon in the header.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Keyboard Shortcuts
+- **F11**: Toggle Fullscreen
+- **Escape**: End Learning Session
+- **Enter**: Submit Answer / Next Word
 
 ## 📄 License
 
 This project is open source and available under the [MIT License](LICENSE).
-
-

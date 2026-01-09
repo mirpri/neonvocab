@@ -14,6 +14,7 @@ import { LogOut } from "lucide-react";
 import { fetchWordDefinition } from "./services/ai";
 import { useVocabStore, selectActiveWordlist } from "./store/vocabStore";
 import Importer from "./components/Importer";
+import SettingsPage from "./components/SettingsPage";
 
 // Flipper moved to ./components/Flipper
 
@@ -97,6 +98,7 @@ function App() {
   const [showImporter, setShowImporter] = useState<boolean>(false);
   const navigate = useNavigate();
   const isChallengeRoute = Boolean(useMatch({ path: "/challenge", end: true }));
+  const isSettingsRoute = Boolean(useMatch({ path: "/settings", end: true }));
 
   // Sync flip with route: /challenge opens Daily Challenge; others close it
   useEffect(() => {
@@ -289,11 +291,11 @@ function App() {
       style={
         resolvedBackgroundUrl
           ? {
-              backgroundImage: `url(\"${resolvedBackgroundUrl}\")`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundAttachment: "fixed",
-            }
+            backgroundImage: `url(\"${resolvedBackgroundUrl}\")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: "fixed",
+          }
           : undefined
       }
     >
@@ -323,7 +325,9 @@ function App() {
           dailyChallengeScores={dailyChallengeScores}
         />
 
-        {!isLearning ? (
+        {isSettingsRoute ? (
+          <SettingsPage />
+        ) : !isLearning ? (
           <>
             <div className="relative z-20 mb-10 flex flex-col justify-center">
               <Flipper
@@ -379,7 +383,7 @@ function App() {
             <div className="w-full text-sm text-slate-500 dark:text-white/60 mx-auto w-full items-end flex justify-end">
               <button
                 onClick={handleQuit}
-                className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
+                className="hover:text-slate-900 dark:hover:text-white flex items-center gap-2 px-3 py-1 mb-2 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
               >
                 <LogOut className="w-4 h-4" /> End Session
               </button>

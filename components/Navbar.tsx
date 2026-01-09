@@ -8,6 +8,7 @@ import {
   Shuffle,
   Trophy,
   Home,
+  Settings,
 } from "lucide-react";
 import { useVocabStore, selectTodayChallengeScore } from "../store/vocabStore";
 
@@ -38,6 +39,7 @@ const NavBar: React.FC<NavBarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const isOnChallenge = location.pathname === "/challenge";
+  const isOnSettings = location.pathname === "/settings";
   const todayScore = useVocabStore(selectTodayChallengeScore);
   const hasChallengeScore = todayScore !== undefined;
 
@@ -119,6 +121,15 @@ const NavBar: React.FC<NavBarProps> = ({
               </div>
             )}
           </div>
+
+          <button
+            onClick={isOnSettings ? () => navigate('/') : () => navigate('/settings')}
+            className={`p-2 ${iconButtonStyle}`}
+            aria-label={isOnSettings ? "Back home" : "Settings"}
+            title={isOnSettings ? "Back home" : "Settings"}
+          >
+            {isOnSettings ? <Home className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+          </button>
 
           <button
             onClick={() =>
