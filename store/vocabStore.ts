@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { AppStats, DailyStats, DefinitionResponse, WordItem, WordList, SessionGoal } from "../types";
 import { loadWordlistPreset, parseWords, pickSeededRandomUnique } from "../services/wordlists";
+import { today } from "../utils/date";
 
 const PRELOAD_BUFFER_SIZE = 3;
 
@@ -13,7 +14,6 @@ const STORAGE_KEY_DAILY = "vocab-daily";
 
 const makeId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (crypto as any).randomUUID();
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -376,8 +376,7 @@ export const useVocabStore = create<VocabStoreState>()(
         startDailyChallenge: async () => {
           const raw = await loadWordlistPreset("sum");
           const wordsRaw = parseWords(raw);
-          const today = new Date().toISOString().split("T")[0];
-          const picked = pickSeededRandomUnique(wordsRaw, 10, today);
+          const picked = pickSeededRandomUnique(wordsRaw, 10, today());
 
           const challengeWords: WordItem[] = picked.map((w) => ({
             id: makeId(),
@@ -408,14 +407,13 @@ export const useVocabStore = create<VocabStoreState>()(
 
         endSession: () => {
           set((s) => {
-            // If quitting a daily challenge, persist today's score once
+            // If quitting a daily challenge, persist today()'s score once
             let nextDailyChallengeScores = s.dailyChallengeScores;
             if (s.isDailyChallenge) {
-              const today = new Date().toISOString().split("T")[0];
-              if (nextDailyChallengeScores[today] === undefined) {
+              if (nextDailyChallengeScores[today()] === undefined) {
                 nextDailyChallengeScores = {
                   ...nextDailyChallengeScores,
-                  [today]: s.stats.sessionPoints ?? 0,
+                  [today()]: s.stats.sessionPoints ?? 0,
                 };
               }
             }
@@ -463,12 +461,11 @@ export const useVocabStore = create<VocabStoreState>()(
               
               if (goalMet) {
                 if (s.isDailyChallenge) {
-                  const today = new Date().toISOString().split("T")[0];
-                  const existingScore = s.dailyChallengeScores[today];
+                  const existingScore = s.dailyChallengeScores[today()];
                   const nextScore = existingScore ?? (s.stats.sessionPoints ?? 0);
                   return {
                     isGoalMet: true,
-                    dailyChallengeScores: { ...s.dailyChallengeScores, [today]: nextScore },
+                    dailyChallengeScores: { ...s.dailyChallengeScores, [today()]: nextScore },
                   };
                 }
                 return { isGoalMet: true };
@@ -480,15 +477,14 @@ export const useVocabStore = create<VocabStoreState>()(
               const total = words.length;
               const tried = s.stats.sessionWordsTried;
               if (tried >= total || tried >= 15) {
-                const today = new Date().toISOString().split("T")[0];
-                const existingScore = s.dailyChallengeScores[today];
+                const existingScore = s.dailyChallengeScores[today()];
                 const nextScore = existingScore ?? (s.stats.sessionPoints ?? 0);
                 return {
                   isGoalMet: true,
                   isSessionComplete: true,
                   currentWordIndex: null,
                   wordQueue: [],
-                  dailyChallengeScores: { ...s.dailyChallengeScores, [today]: nextScore },
+                  dailyChallengeScores: { ...s.dailyChallengeScores, [today()]: nextScore },
                 };
               }
               const nextIndex = Math.min(tried, total - 1);
@@ -587,13 +583,11 @@ export const useVocabStore = create<VocabStoreState>()(
           if (state.currentWordIndex === null) return;
           if (!words[state.currentWordIndex]) return;
 
-          const today = new Date().toISOString().split("T")[0];
-
           set((s) => {
-            const currentDaily = s.dailyStats[today] || { tried: 0, success: 0 };
+            const currentDaily = s.dailyStats[today()] || { tried: 0, success: 0 };
             const nextDailyStats = {
               ...s.dailyStats,
-              [today]: {
+              [today()]: {
                 tried: currentDaily.tried + 1,
                 success: currentDaily.success + (success ? 1 : 0),
               },
@@ -716,6 +710,5 @@ export const selectActiveWordlist = (state: Pick<VocabStoreState, "wordlists" | 
 export const selectTodayChallengeScore = (
   state: Pick<VocabStoreState, "dailyChallengeScores">
 ) => {
-  const today = new Date().toISOString().split("T")[0];
-  return state.dailyChallengeScores[today];
+  return state.dailyChallengeScores[today()];
 };

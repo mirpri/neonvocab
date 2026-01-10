@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Target,
 } from "lucide-react";
+import { toDateString } from "@/utils/date";
 
 interface StatsBoardProps {
   stats: AppStats;
@@ -91,20 +92,18 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
 
   // Calculate Day Streak
   const calculateDayStreak = () => {
-    const today = new Date();
-    const toDateStr = (d: Date) => d.toISOString().split("T")[0];
-    let current = new Date(today);
+    let current = new Date();
     let streak = 0;
 
     // Check if we have activity today
-    if (!dailyStats[toDateStr(current)]) {
+    if (!dailyStats[toDateString(current)]) {
       // If not, check yesterday. If yesterday has no activity, streak is 0.
       current.setDate(current.getDate() - 1);
-      if (!dailyStats[toDateStr(current)]) return 0;
+      if (!dailyStats[toDateString(current)]) return 0;
     }
 
     // Count backwards
-    while (dailyStats[toDateStr(current)]) {
+    while (dailyStats[toDateString(current)]) {
       streak++;
       current.setDate(current.getDate() - 1);
     }
@@ -119,7 +118,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
   const chartData = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = toDateString(d);
     const dayLabel = d.toLocaleDateString("en-US", { weekday: "narrow" });
     if (isDailyChallenge) {
       const pts = dailyChallengeScores[dateStr] ?? 0;
