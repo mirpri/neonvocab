@@ -119,7 +119,7 @@ const DailyChallengeCard: React.FC<DailyChallengeCardProps> = ({
         className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-2 justify-center"
       >
         <LandPlot className="w-4 h-4" />{" "}
-        {todayScore !== undefined ? "Retry Daily" : "Start Daily"} Challenge
+        {todayScore !== undefined ? "Retry" : "Start"} Daily Challenge
       </button>
       {todayScore !== undefined && (
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
