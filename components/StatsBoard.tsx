@@ -30,6 +30,9 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
   dailyChallengeScores = {},
 }) => {
   const [wpm, setWpm] = useState(0);
+  const heatmapWidthRef = useRef<HTMLDivElement | null>(null);
+  const [weeksToShow, setWeeksToShow] = useState<number>(16);
+  const [rowCount, setRowCount] = useState<number>(7);
   const samplesRef = useRef<Array<{ t: number; correct: number }>>([]);
   const correctRef = useRef(stats.sessionWordsCorrect);
 
@@ -139,6 +142,113 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
         1,
         ...chartData.map((d: any) => Math.max(d.data.tried, d.data.success))
       );
+
+  // Additional aggregates for updated charts
+  const maxSuccess7 = isDailyChallenge
+    ? 1
+    : Math.max(1, ...chartData.map((d: any) => d.data.success ?? 0));
+
+  const challengeTop10: Array<{ dateStr: string; score: number; label: string }> =
+    isDailyChallenge
+      ? Object.entries(dailyChallengeScores)
+          .map(([dateStr, score]) => ({
+            dateStr,
+            score: Number(score) || 0,
+            label: (() => {
+              const d = new Date(dateStr);
+              const m = d.getMonth() + 1;
+              const day = d.getDate();
+              return `${m}.${day}`; // e.g., 1.9 for Jan 9
+            })(),
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10)
+      : [];
+
+  const challengeBars: Array<{ dateStr: string; score: number; label: string }> =
+    isDailyChallenge
+      ? (
+          challengeTop10.length < 10
+            ? [
+                ...challengeTop10,
+                ...Array(10 - challengeTop10.length)
+                  .fill(null)
+                  .map((_, i) => ({ dateStr: `dummy-${i}`, score: 0, label: "" })),
+              ]
+            : challengeTop10
+        )
+      : [];
+
+  const challengeMaxScore = isDailyChallenge
+    ? Math.max(1, ...challengeBars.map((s) => s.score))
+    : 1;
+
+  // Heatmap data for normal mode (GitHub-style dense grid)
+  const heatmapCells: Array<{
+    date: Date;
+    dateStr: string;
+    success: number;
+    tried: number;
+  }> = [];
+  if (!isDailyChallenge && weeksToShow > 0) {
+    const today = new Date();
+    // Align start so last column ends with today
+    const totalDays = weeksToShow * rowCount;
+    const start = new Date(today);
+    start.setDate(today.getDate() - (totalDays - 1));
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const dsKey = toDateString(d);
+      const ds = dailyStats[dsKey] || { tried: 0, success: 0 };
+      heatmapCells.push({
+        date: d,
+        dateStr: dsKey,
+        success: ds.success ?? 0,
+        tried: ds.tried ?? 0,
+      });
+    }
+  }
+
+  const maxSuccessPeriod = !isDailyChallenge
+    ? Math.max(1, ...heatmapCells.map((c) => c.success))
+    : 1;
+
+  // Dynamically determine weeks to show based on available width
+  useEffect(() => {
+    if (isDailyChallenge) return;
+    const el = heatmapWidthRef.current;
+    if (!el) return;
+
+    const compute = (width: number) => {
+      const isSmall = !(window.matchMedia && window.matchMedia("(min-width: 768px)").matches);
+      setRowCount(isSmall ? 3 : 7);
+      const colWidth = 13; // px, matches auto-cols and w/h
+      const gap = 4; // gap-1
+      const weeks = Math.max(1, Math.floor((width + gap) / (colWidth + gap)));
+      setWeeksToShow(weeks);
+    };
+
+    // Initial measure
+    compute(el.clientWidth || el.getBoundingClientRect().width || 0);
+
+    // Observe element size changes
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect) compute(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+
+    // Window resize may change breakpoint (sm)
+    const onWinResize = () => compute(el.clientWidth || el.getBoundingClientRect().width || 0);
+    window.addEventListener("resize", onWinResize);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onWinResize);
+    };
+  }, [isDailyChallenge]);
 
   const currentGoalValue = (() => {
     if (!goal) return 0;
@@ -418,23 +528,27 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
         }
       </div>
 
-      {/* Daily Chart */}
+      {/* Daily Chart / Challenge Top 10 */}
       <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col transition-colors duration-300">
         <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mb-2">
-          Last 7 Days
+          {isDailyChallenge
+            ? "Top 10 Scores"
+            : rowCount === 3
+            ? `Last ${weeksToShow * rowCount} Days`
+            : `Last ${weeksToShow} Weeks`}
         </p>
-        <div className="flex-1 h-24 min-h-[96px] overflow-x-auto">
-          <div className="flex h-full items-end justify-between gap-2 h-24">
-            {chartData.map((d: any, i) => {
-              if (isDailyChallenge) {
-                const h = d.data.points;
+        <div ref={heatmapWidthRef} className="flex-1 h-24 overflow-x-auto">
+          {isDailyChallenge ? (
+            <div className="flex h-full items-end justify-between gap-2 min-h-[80px]">
+              {challengeBars.map((d, i) => {
+                const h = (d.score / challengeMaxScore) * 100;
                 return (
                   <div
-                    key={i}
+                    key={`${d.dateStr}-${i}`}
                     className="relative flex flex-col items-center gap-1 flex-1 min-w-[32px] h-full justify-end group"
                   >
                     <div className="w-full h-full flex items-end justify-center relative rounded-md overflow-hidden bg-slate-200/30 dark:bg-slate-600/30 hover:bg-slate-200 dark:hover:bg-slate-500/50 transition-colors">
-                      {d.data.points > 0 && (
+                      {d.score > 0 && (
                         <div
                           style={{ height: `${h}%` }}
                           className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-600/90 to-amber-400/80 dark:from-yellow-500/90 dark:to-amber-300/80 rounded-t-sm shadow-[0_0_10px_rgba(234,179,8,0.5)]"
@@ -442,45 +556,40 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
                       )}
                     </div>
                     <span className="text-[11px] text-slate-500 font-mono">
-                      {d.label}
+                      {d.label || "--"}
                     </span>
                     <div className="absolute top-1 right-1 text-slate-900/60 dark:text-white/60 text-[10px] hidden group-hover:block z-20 whitespace-nowrap">
-                      {d.data.points ?? "--"}
+                      {d.score > 0 ? d.score : "--"}
                     </div>
                   </div>
                 );
-              }
-              const triedH = (d.data.tried / maxVal) * 100;
-              const successH = (d.data.success / maxVal) * 100;
-              return (
-                <div
-                  key={i}
-                  className="relative flex flex-col items-center gap-1 flex-1 min-w-[32px] h-full justify-end group"
-                >
-                  <div className="w-full h-full flex items-end justify-center relative rounded-md overflow-hidden bg-slate-200/30 dark:bg-slate-600/30 hover:bg-slate-200 dark:hover:bg-slate-500/50 transition-colors">
-                    {d.data.tried > 0 && (
-                      <div
-                        style={{ height: `${triedH}%` }}
-                        className="absolute bottom-0 w-full bg-gradient-to-t from-indigo-700/70 to-indigo-600/70 dark:from-indigo-600/70 dark:to-indigo-400/70 rounded-t-sm opacity-50"
-                      ></div>
-                    )}
-                    {d.data.success > 0 && (
-                      <div
-                        style={{ height: `${successH}%` }}
-                        className="absolute bottom-0 w-full bg-gradient-to-t from-green-500/80 to-green-400/80 dark:from-green-600/80 dark:to-green-400/80 rounded-t-sm shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                      ></div>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    {d.label}
-                  </span>
-                  <div className="absolute top-1 right-1 text-slate-900/60 dark:text-white/60 text-[10px] hidden group-hover:block z-20 whitespace-nowrap">
-                    {d.data.success}/{d.data.tried}
-                  </div>
+              })}
+            </div>
+          ) : (
+              <div className="flex justify-center w-full">
+                <div className="grid grid-rows-3 md:grid-rows-7 grid-flow-col auto-cols-[13px] gap-1">
+                {heatmapCells.map((c, idx) => {
+                  const ratio = Math.max(0, Math.min(1, c.success / maxSuccessPeriod));
+                  const alpha = 0.2 + ratio * 0.8;
+                  const hasRecord = (c.tried ?? 0) > 0;
+                  const bgColor = hasRecord ? `rgba(34,197,94,${alpha})` : undefined;
+                  return (
+                    <div
+                      key={`${c.dateStr}-${idx}`}
+                      className={`w-[13px] h-[13px] rounded-sm ${
+                        hasRecord ? "" : "bg-slate-200/60 dark:bg-slate-700/50"
+                      }`}
+                      style={bgColor ? { backgroundColor: bgColor } : undefined}
+                      title={`${hasRecord ? `${c.success}/${c.tried}` : "No record"} on ${c.date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}`}
+                    ></div>
+                  );
+                })}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+          )}
         </div>
       </div>
     </div>
