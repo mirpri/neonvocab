@@ -21,8 +21,7 @@ const STORAGE_KEY_THEME = "vocab-theme";
 const STORAGE_KEY_BG_ENABLED = "vocab-bg-enabled";
 const STORAGE_KEY_BG_CUSTOM_URL = "vocab-bg-custom-url";
 
-// Direct image URL (no fetch/CORS). See https://bing.img.run/
-const BING_DAILY_IMAGE_URL = "https://bing.img.run/1920x1080.php";
+const DEFAULT_IMAGE_URL = "https://picsum.photos/2560/1440";
 
 function App() {
   const wordlists = useVocabStore((s) => s.wordlists);
@@ -138,7 +137,7 @@ function App() {
     }
   }, [backgroundEnabled, backgroundUrl]);
 
-  // Resolve background URL (custom overrides Bing daily)
+  // Resolve background URL
   useEffect(() => {
     let cancelled = false;
 
@@ -154,7 +153,7 @@ function App() {
         return;
       }
 
-      if (!cancelled) setResolvedBackgroundUrl(BING_DAILY_IMAGE_URL);
+      if (!cancelled) setResolvedBackgroundUrl(DEFAULT_IMAGE_URL);
     };
 
     run();

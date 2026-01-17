@@ -105,11 +105,11 @@ const NavBar: React.FC<NavBarProps> = ({
                       type="button"
                       onClick={() => {
                         onChangeBackgroundUrl(
-                          `https://bing.img.run/rand.php?ts=${Date.now()}`
+                          `https://picsum.photos/seed/${Date.now()}/2560/1440`
                         );
                       }}
                       className={`px-3 py-2 ${iconButtonStyle}`}
-                      aria-label="Use random Bing wallpaper"
+                      aria-label="Use random wallpaper"
                       title="Random"
                     >
                       <Shuffle className="w-4 h-4" />

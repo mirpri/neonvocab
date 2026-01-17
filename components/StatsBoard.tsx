@@ -154,12 +154,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
           .map(([dateStr, score]) => ({
             dateStr,
             score: Number(score) || 0,
-            label: (() => {
-              const d = new Date(dateStr);
-              const m = d.getMonth() + 1;
-              const day = d.getDate();
-              return `${m}.${day}`; // e.g., 1.9 for Jan 9
-            })(),
+            label: `${score} on ${new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
           }))
           .sort((a, b) => b.score - a.score)
           .slice(0, 10)
@@ -173,15 +168,11 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
                 ...challengeTop10,
                 ...Array(10 - challengeTop10.length)
                   .fill(null)
-                  .map((_, i) => ({ dateStr: `dummy-${i}`, score: 0, label: "" })),
+                  .map((_, i) => ({ dateStr: `dummy-${i}`, score: -1, label: "" })),
               ]
             : challengeTop10
         )
       : [];
-
-  const challengeMaxScore = isDailyChallenge
-    ? Math.max(1, ...challengeBars.map((s) => s.score))
-    : 1;
 
   // Heatmap data for normal mode (GitHub-style dense grid)
   const heatmapCells: Array<{
@@ -192,8 +183,11 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
   }> = [];
   if (!isDailyChallenge && weeksToShow > 0) {
     const today = new Date();
-    // Align start so last column ends with today
-    const totalDays = weeksToShow * rowCount;
+    let totalDays = weeksToShow * rowCount;
+    // When using full 7 rows (week view), ensure last column only fills up to today's weekday
+    if (rowCount === 7) {
+      totalDays = weeksToShow * 7 - (6 - new Date().getDay());
+    }
     const start = new Date(today);
     start.setDate(today.getDate() - (totalDays - 1));
     for (let i = 0; i < totalDays; i++) {
@@ -541,11 +535,12 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
           {isDailyChallenge ? (
             <div className="flex h-full items-end justify-between gap-2 min-h-[80px]">
               {challengeBars.map((d, i) => {
-                const h = (d.score / challengeMaxScore) * 100;
+                const h = d.score;
                 return (
                   <div
                     key={`${d.dateStr}-${i}`}
                     className="relative flex flex-col items-center gap-1 flex-1 min-w-[32px] h-full justify-end group"
+                    title={d.label}
                   >
                     <div className="w-full h-full flex items-end justify-center relative rounded-md overflow-hidden bg-slate-200/30 dark:bg-slate-600/30 hover:bg-slate-200 dark:hover:bg-slate-500/50 transition-colors">
                       {d.score > 0 && (
@@ -556,11 +551,8 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
                       )}
                     </div>
                     <span className="text-[11px] text-slate-500 font-mono">
-                      {d.label || "--"}
+                      {d.score === -1 ? "--" : d.score}
                     </span>
-                    <div className="absolute top-1 right-1 text-slate-900/60 dark:text-white/60 text-[10px] hidden group-hover:block z-20 whitespace-nowrap">
-                      {d.score > 0 ? d.score : "--"}
-                    </div>
                   </div>
                 );
               })}
