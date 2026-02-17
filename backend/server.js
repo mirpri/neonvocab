@@ -38,17 +38,17 @@ if (CACHE_ENABLED) {
 
 // Allow requests from your frontend domain
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*', 
+    origin: process.env.FRONTEND_URL || '*',
     methods: ['GET']
 }));
 
 // --- GEMINI IMPLEMENTATION ---
 const fetchGeminiDefinition = async (word) => {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing");
-    
-    const genAI = new GoogleGenAI({ 
+
+    const genAI = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
-        baseUrl: process.env.GEMINI_BASE_URL 
+        baseUrl: process.env.GEMINI_BASE_URL
     });
 
     const prompt = `Provide a dictionary definition for the word "${word}". 
@@ -105,15 +105,15 @@ const fetchOpenAIDefinition = async (word) => {
     });
 
     if (!response.ok) {
-         const errText = await response.text();
-         throw new Error(`OpenAI API Error: ${response.status} - ${errText}`);
+        const errText = await response.text();
+        throw new Error(`OpenAI API Error: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-    
+
     if (!content) throw new Error("No content in OpenAI response");
-    
+
     // Sanitize content
     const cleanedContent = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
     return JSON.parse(cleanedContent);
@@ -153,12 +153,12 @@ app.get('/definition', async (req, res) => {
                 createdAt: Date.now()
             });
         }
-        
+
         res.json(result);
 
     } catch (error) {
         console.error("Backend Error:", error);
-        res.status(500).json({ 
+        res.status(500).json({
             definition: "Error fetching definition from backend.",
             partOfSpeech: "error",
             exampleSentence: "Please try again later."
@@ -173,4 +173,120 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Provider: ${process.env.AI_PROVIDER || 'gemini'}`);
+    initMySQL();
+});
+
+// --- MYSQL & SYNC IMPLEMENTATION ---
+import mysql from 'mysql2/promise';
+
+let pool;
+
+async function initMySQL() {
+    if (!process.env.DB_HOST) {
+        console.warn("MySQL config missing (DB_HOST). Sync feature may not work.");
+        return;
+    }
+    try {
+        pool = mysql.createPool({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0
+        });
+
+        // Create table if not exists
+        const [result] = await pool.execute(`
+            CREATE TABLE IF NOT EXISTS user_data (
+                username VARCHAR(255) PRIMARY KEY,
+                last_modified BIGINT,
+                data LONGTEXT
+            )
+        `);
+        console.log("MySQL initialized and table checked.");
+    } catch (err) {
+        console.error("Failed to initialize MySQL:", err);
+    }
+}
+
+async function verifyToken(token) {
+    try {
+        const response = await fetch('https://mirpass-api.puppygoapp.com/token/verify', {
+            method: 'POST',
+            body: JSON.stringify({token: token}),
+        });
+
+        if (!response.ok) {
+            throw new Error('Token verification failed');
+        }
+
+        const json = await response.json();
+        return json.data?.username || json.username;
+    } catch (error) {
+        console.error("Token verification error:", error);
+        throw error;
+    }
+}
+
+app.use(express.json({ limit: '10mb' }));
+
+app.post('/sync', async (req, res) => {
+    if (!pool) {
+        return res.status(503).json({ error: "Sync service unavailable (DB not configured)" });
+    }
+
+    const { token, timestamp, data } = req.body;
+
+    if (!token || !timestamp || !data) {
+        return res.status(400).json({ error: "Missing required fields (token, timestamp, data)" });
+    }
+
+    try {
+        const username = await verifyToken(token);
+        if (!username) {
+            return res.status(401).json({ error: "Invalid token or user not found" });
+        }
+
+        // Check existing data
+        const [rows] = await pool.execute('SELECT last_modified, data FROM user_data WHERE username = ?', [username]);
+
+        if (rows.length === 0) {
+            // New user data, insert
+            await pool.execute(
+                'INSERT INTO user_data (username, last_modified, data) VALUES (?, ?, ?)',
+                [username, timestamp, data]
+            );
+            return res.json({ status: "Server updated (new)" });
+        }
+
+        const serverRow = rows[0];
+        const serverTimestamp = Number(serverRow.last_modified);
+        const clientTimestamp = Number(timestamp);
+
+        if (clientTimestamp > serverTimestamp) {
+            // Client is newer, update server
+            await pool.execute(
+                'UPDATE user_data SET last_modified = ?, data = ? WHERE username = ?',
+                [clientTimestamp, data, username]
+            );
+            return res.json({ status: "Server updated" });
+        } else if (serverTimestamp > clientTimestamp) {
+            // Server is newer, return server data
+            return res.json({
+                status: "Client updated",
+                data: serverRow.data, // This is the stringified JSON
+                timestamp: serverTimestamp
+            });
+        } else {
+            // In sync
+            return res.json({ status: "Synced" });
+        }
+
+    } catch (error) {
+        console.error("Sync Error:", error);
+        res.status(500).json({ error: "Internal Server Error during sync" });
+    }
 });

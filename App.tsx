@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo } from "react";
-import { useNavigate, useMatch } from "react-router-dom";
+import { useNavigate, useMatch, useSearchParams } from "react-router-dom";
 // Importer moved into WordListPanel
 import ContinueCard from "./components/ContinueCard";
 import LearningSession from "./components/LearningSession";
@@ -23,7 +23,14 @@ const STORAGE_KEY_BG_CUSTOM_URL = "vocab-bg-custom-url";
 
 const DEFAULT_IMAGE_URL = "https://picsum.photos/2560/1440";
 
+import LoginCallback from "./components/LoginCallback";
+
 function App() {
+  const [searchParams] = useSearchParams();
+  const hasAuthCode = searchParams.has("code") && searchParams.has("state");
+
+
+
   const wordlists = useVocabStore((s) => s.wordlists);
   const activeWordlistId = useVocabStore((s) => s.activeWordlistId);
   const wordSort = useVocabStore((s) => s.wordSort);
@@ -288,11 +295,11 @@ function App() {
       style={
         resolvedBackgroundUrl
           ? {
-              backgroundImage: `url(\"${resolvedBackgroundUrl}\")`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundAttachment: "fixed",
-            }
+            backgroundImage: `url(\"${resolvedBackgroundUrl}\")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: "fixed",
+          }
           : undefined
       }
     >
@@ -429,6 +436,7 @@ function App() {
           <p>Powered by AI &copy; 2026 Mirpri</p>
         </footer>
       </main>
+      {hasAuthCode && <LoginCallback />}
     </div>
   );
 }

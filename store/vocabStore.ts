@@ -55,6 +55,7 @@ type VocabStoreState = {
   stats: AppStats;
   dailyStats: Record<string, DailyStats>;
   dailyChallengeScores: Record<string, number>;
+  lastModified: number;
 
   // Definition cache (global)
   definitionCache: Record<string, DefinitionResponse>;
@@ -82,11 +83,12 @@ type VocabStoreState = {
   cacheDefinition: (wordText: string, def: DefinitionResponse) => void;
 
   resetAllData: () => void;
+  replaceData: (jsonString: string) => void;
 };
 
 type PersistedSlice = Pick<
   VocabStoreState,
-  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache" | "lastSessionGoal" | "dailyChallengeScores"
+  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache" | "lastSessionGoal" | "dailyChallengeScores" | "lastModified"
 >;
 
 const getActiveWords = (state: Pick<VocabStoreState, "wordlists" | "activeWordlistId">) => {
@@ -165,6 +167,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       definitionCache: {},
       lastSessionGoal: null,
       dailyChallengeScores: {},
+      lastModified: Date.now(),
     };
   } catch {
     const fallbackLists = ensureNonEmptyWordlists(undefined);
@@ -177,6 +180,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       definitionCache: {},
       lastSessionGoal: null,
       dailyChallengeScores: {},
+      lastModified: Date.now(),
     };
   }
 };
@@ -196,6 +200,7 @@ export const useVocabStore = create<VocabStoreState>()(
         definitionCache: persistedInit.definitionCache,
         lastSessionGoal: persistedInit.lastSessionGoal,
         dailyChallengeScores: persistedInit.dailyChallengeScores,
+        lastModified: persistedInit.lastModified,
 
         // Non-persisted session
         isLearning: false,
@@ -216,6 +221,10 @@ export const useVocabStore = create<VocabStoreState>()(
             wordQueue: [],
             isSessionComplete: false,
             isGoalMet: false,
+            // Selecting a list doesn't change data, so no lastModified update needed? 
+            // Actually, if we want to sync the "active list selection", we should update it.
+            // But usually sync focuses on content. Let's update it to be safe so user sees same list.
+            lastModified: Date.now(),
           }));
         },
 
@@ -230,6 +239,7 @@ export const useVocabStore = create<VocabStoreState>()(
             wordQueue: [],
             isSessionComplete: false,
             isGoalMet: false,
+            lastModified: Date.now(),
           }));
         },
 
@@ -240,6 +250,7 @@ export const useVocabStore = create<VocabStoreState>()(
             wordlists: state.wordlists.map((wl) =>
               wl.id === state.activeWordlistId ? { ...wl, name: nextName } : wl
             ),
+            lastModified: Date.now(),
           }));
         },
 
@@ -263,6 +274,7 @@ export const useVocabStore = create<VocabStoreState>()(
               definitionCache: nextCache,
               isLearning: false,
               isGoalMet: false,
+              lastModified: Date.now(),
             };
           });
         },
@@ -297,11 +309,12 @@ export const useVocabStore = create<VocabStoreState>()(
               wordQueue: [],
               isSessionComplete: false,
               isGoalMet: false,
+              lastModified: Date.now(),
             };
           });
         },
 
-        setWordSort: (sort) => set(() => ({ wordSort: sort })),
+        setWordSort: (sort) => set(() => ({ wordSort: sort, lastModified: Date.now() })),
 
         importWords: (text) => {
           const rawList = text
@@ -329,6 +342,7 @@ export const useVocabStore = create<VocabStoreState>()(
             wordlists: s.wordlists.map((wl) =>
               wl.id === s.activeWordlistId ? { ...wl, words: [...wl.words, ...toAdd] } : wl
             ),
+            lastModified: Date.now(),
           }));
         },
 
@@ -348,6 +362,7 @@ export const useVocabStore = create<VocabStoreState>()(
               isLearning: false,
               currentWordIndex: null,
               isGoalMet: false,
+              lastModified: Date.now(),
             };
           });
         },
@@ -390,14 +405,15 @@ export const useVocabStore = create<VocabStoreState>()(
             const existing = s.wordlists.find((wl) => wl.id === "daily-challenge");
             const nextLists = existing
               ? s.wordlists.map((wl) =>
-                  wl.id === "daily-challenge" ? { ...wl, name: "Daily Challenge", words: challengeWords } : wl
-                )
+                wl.id === "daily-challenge" ? { ...wl, name: "Daily Challenge", words: challengeWords } : wl
+              )
               : [...s.wordlists, { id: "daily-challenge", name: "Daily Challenge", words: challengeWords }];
 
             return {
               wordlists: nextLists,
               prevActiveWordlistId: s.activeWordlistId,
               activeWordlistId: "daily-challenge",
+              lastModified: Date.now(),
             };
           });
 
@@ -436,6 +452,7 @@ export const useVocabStore = create<VocabStoreState>()(
               dailyChallengeScores: nextDailyChallengeScores,
               activeWordlistId: nextActive,
               prevActiveWordlistId: null,
+              lastModified: Date.now(), // Scores might have updated
             };
           });
         },
@@ -458,7 +475,7 @@ export const useVocabStore = create<VocabStoreState>()(
                   goalMet = true;
                 }
               }
-              
+
               if (goalMet) {
                 if (s.isDailyChallenge) {
                   const existingScore = s.dailyChallengeScores[today()];
@@ -466,6 +483,7 @@ export const useVocabStore = create<VocabStoreState>()(
                   return {
                     isGoalMet: true,
                     dailyChallengeScores: { ...s.dailyChallengeScores, [today()]: nextScore },
+                    lastModified: Date.now(),
                   };
                 }
                 return { isGoalMet: true };
@@ -485,6 +503,7 @@ export const useVocabStore = create<VocabStoreState>()(
                   currentWordIndex: null,
                   wordQueue: [],
                   dailyChallengeScores: { ...s.dailyChallengeScores, [today()]: nextScore },
+                  lastModified: Date.now(),
                 };
               }
               const nextIndex = Math.min(tried, total - 1);
@@ -628,6 +647,7 @@ export const useVocabStore = create<VocabStoreState>()(
               stats: nextStats,
               wordlists: nextWordlists,
               isGoalMet: s.isGoalMet, // Preserve existing goal state, don't update it here
+              lastModified: Date.now(),
             };
           });
         },
@@ -643,7 +663,10 @@ export const useVocabStore = create<VocabStoreState>()(
         cacheDefinition: (wordText, def) => {
           set((s) => {
             if (s.definitionCache[wordText]) return s;
-            return { definitionCache: { ...s.definitionCache, [wordText]: def } };
+            return {
+              definitionCache: { ...s.definitionCache, [wordText]: def },
+              lastModified: Date.now(),
+            };
           });
         },
 
@@ -665,6 +688,7 @@ export const useVocabStore = create<VocabStoreState>()(
             wordQueue: [],
             isSessionComplete: false,
             dailyChallengeScores: {},
+            lastModified: Date.now(),
           }));
 
           try {
@@ -675,6 +699,40 @@ export const useVocabStore = create<VocabStoreState>()(
             localStorage.removeItem(STORAGE_KEY_DAILY);
           } catch {
             // ignore
+          }
+        },
+
+        replaceData: (jsonString: string) => {
+          try {
+            const data = JSON.parse(jsonString);
+            if (!data) return;
+
+            // Validate basic structure if needed, or just trust the server/backup
+            // We should ensure the shape matches PersistedSlice
+
+            set((s) => ({
+              ...s,
+              wordlists: data.wordlists || s.wordlists,
+              activeWordlistId: data.activeWordlistId || s.activeWordlistId,
+              wordSort: data.wordSort || s.wordSort,
+              stats: data.stats || s.stats,
+              dailyStats: data.dailyStats || s.dailyStats,
+              definitionCache: data.definitionCache || s.definitionCache,
+              lastSessionGoal: data.lastSessionGoal || s.lastSessionGoal,
+              dailyChallengeScores: data.dailyChallengeScores || s.dailyChallengeScores,
+              lastModified: data.lastModified || Date.now(),
+
+              // Reset session state to be safe
+              isLearning: false,
+              isDailyChallenge: false,
+              currentWordIndex: null,
+              wordQueue: [],
+              isSessionComplete: false,
+              isGoalMet: false,
+              sessionGoal: null,
+            }));
+          } catch (e) {
+            console.error("Failed to replace data:", e);
           }
         },
       };
@@ -699,6 +757,7 @@ export const useVocabStore = create<VocabStoreState>()(
         lastSessionGoal: state.lastSessionGoal,
         definitionCache: state.definitionCache,
         dailyChallengeScores: state.dailyChallengeScores,
+        lastModified: state.lastModified,
       }),
     }
   )

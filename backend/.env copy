@@ -5,3 +5,9 @@ OPENAI_BASE_URL=your_openai_base_url_here
 OPENAI_MODEL=deepseek/deepseek-v3.2
 
 AI_PROVIDER=openai
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=vocab_sync
+DB_PORT=3306
