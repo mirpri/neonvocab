@@ -56,6 +56,7 @@ type VocabStoreState = {
   dailyStats: Record<string, DailyStats>;
   dailyChallengeScores: Record<string, number>;
   lastModified: number;
+  lastSyncTime: number;
 
   // Definition cache (global)
   definitionCache: Record<string, DefinitionResponse>;
@@ -88,7 +89,7 @@ type VocabStoreState = {
 
 type PersistedSlice = Pick<
   VocabStoreState,
-  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache" | "lastSessionGoal" | "dailyChallengeScores" | "lastModified"
+  "wordlists" | "activeWordlistId" | "wordSort" | "stats" | "dailyStats" | "definitionCache" | "lastSessionGoal" | "dailyChallengeScores" | "lastModified" | "lastSyncTime"
 >;
 
 const getActiveWords = (state: Pick<VocabStoreState, "wordlists" | "activeWordlistId">) => {
@@ -168,6 +169,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       lastSessionGoal: null,
       dailyChallengeScores: {},
       lastModified: Date.now(),
+      lastSyncTime: 0,
     };
   } catch {
     const fallbackLists = ensureNonEmptyWordlists(undefined);
@@ -181,6 +183,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       lastSessionGoal: null,
       dailyChallengeScores: {},
       lastModified: Date.now(),
+      lastSyncTime: 0,
     };
   }
 };
@@ -201,6 +204,7 @@ export const useVocabStore = create<VocabStoreState>()(
         lastSessionGoal: persistedInit.lastSessionGoal,
         dailyChallengeScores: persistedInit.dailyChallengeScores,
         lastModified: persistedInit.lastModified,
+        lastSyncTime: persistedInit.lastSyncTime || 0,
 
         // Non-persisted session
         isLearning: false,
@@ -721,6 +725,7 @@ export const useVocabStore = create<VocabStoreState>()(
               lastSessionGoal: data.lastSessionGoal || s.lastSessionGoal,
               dailyChallengeScores: data.dailyChallengeScores || s.dailyChallengeScores,
               lastModified: data.lastModified || Date.now(),
+              lastSyncTime: data.lastModified || Date.now(), // If replacing data, we are synced to this version
 
               // Reset session state to be safe
               isLearning: false,
@@ -758,6 +763,7 @@ export const useVocabStore = create<VocabStoreState>()(
         definitionCache: state.definitionCache,
         dailyChallengeScores: state.dailyChallengeScores,
         lastModified: state.lastModified,
+        lastSyncTime: state.lastSyncTime,
       }),
     }
   )

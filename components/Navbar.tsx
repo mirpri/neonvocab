@@ -57,8 +57,29 @@ const NavBar: React.FC<NavBarProps> = ({
     if (!accessToken) return;
     setIsSyncing(true);
     try {
-      const msg = await syncData(accessToken);
-      alert(msg); // TODO: Replace with better UI toast
+      const result = await syncData(accessToken);
+
+      if (result.status === 'conflict') {
+        const replaceLocal = window.confirm(
+          "Conflict detected: The data on the server is newer than when you last synced, but you also have local changes.\n\n" +
+          "Click OK to REPLACE local data with server data (lose local changes).\n" +
+          "Click Cancel to OVERWRITE server data with local data (keep local changes)."
+        );
+
+        if (replaceLocal) {
+          // User chose server data
+          const dataStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+          useVocabStore.getState().replaceData(dataStr);
+          alert("Local data replaced with server data.");
+        } else {
+          // User chose local data - force push
+          const forceResult = await syncData(accessToken, true);
+          alert(forceResult.message);
+        }
+      } else {
+        alert(result.message);
+      }
+
     } catch (e: any) {
       alert("Sync failed: " + e.message);
     } finally {
@@ -84,7 +105,7 @@ const NavBar: React.FC<NavBarProps> = ({
       code_challenge: codeChallenge,
       code_challenge_method: "S256"
     });
-    window.location.href=
+    window.location.href =
       `https://mirpass-api.puppygoapp.com/oauth2/authorize?${params.toString()}`;
   }
 

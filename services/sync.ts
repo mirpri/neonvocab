@@ -2,23 +2,19 @@
 import { config } from "@/config";
 import { useVocabStore } from "../store/vocabStore";
 
-const SYNC_ENDPOINT = config.apiBaseUrl;
+const SYNC_ENDPOINT = config.apiBaseUrl + "/sync";
 
-interface SyncResponse {
-    status?: string;
+export interface SyncResult {
+    status: 'success' | 'updated' | 'conflict' | 'error';
     message?: string;
-    data?: any; // The store data
+    data?: any;
     timestamp?: number;
 }
 
-export async function syncData(accessToken: string): Promise<string> {
+export async function syncData(accessToken: string, force = false): Promise<SyncResult> {
     const store = useVocabStore.getState();
 
     // We only need to persist the 'persisted' parts of the store.
-    // Zustand's persist middleware stores this in localStorage, so we can grab it from there
-    // OR we can manually construct it from the state.
-    // Constructing it ensures we send what we expect.
-
     const payloadData = {
         wordlists: store.wordlists,
         activeWordlistId: store.activeWordlistId,
@@ -29,11 +25,14 @@ export async function syncData(accessToken: string): Promise<string> {
         lastSessionGoal: store.lastSessionGoal,
         dailyChallengeScores: store.dailyChallengeScores,
         lastModified: store.lastModified || 0,
+        lastSyncTime: store.lastSyncTime || 0,
     };
 
     const payload = {
         token: accessToken,
         timestamp: payloadData.lastModified,
+        lastSynced: payloadData.lastSyncTime,
+        force: force,
         data: JSON.stringify(payloadData),
     };
 
@@ -50,17 +49,29 @@ export async function syncData(accessToken: string): Promise<string> {
             throw new Error(`Sync failed: ${response.statusText}`);
         }
 
-        const result: SyncResponse = await response.json();
+        const result = await response.json();
+
+        if (result.status === 'conflict') {
+            return {
+                status: 'conflict',
+                message: 'Data conflict detected',
+                data: result.data,
+                timestamp: result.timestamp
+            };
+        }
 
         if (result.data) {
+            // Server has newer data
             const dataStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
             store.replaceData(dataStr);
-            return "Data updated from server";
+            return { status: 'updated', message: "Data updated from server" };
         } else {
-            return "Server updated successfully";
+            // Update lastSyncTime to now (or use server timestamp if we had one)
+            useVocabStore.setState({ lastSyncTime: Date.now() });
+            return { status: 'success', message: "Server updated successfully" };
         }
     } catch (error: any) {
         console.error("Sync error:", error);
-        throw new Error(error.message || "Sync failed");
+        return { status: 'error', message: error.message || "Sync failed" };
     }
 }

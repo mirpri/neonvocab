@@ -1,3 +1,4 @@
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -39,7 +40,7 @@ if (CACHE_ENABLED) {
 // Allow requests from your frontend domain
 app.use(cors({
     origin: process.env.FRONTEND_URL || '*',
-    methods: ['GET']
+    methods: ['GET', 'POST'] // Added POST for sync
 }));
 
 // --- GEMINI IMPLEMENTATION ---
@@ -216,7 +217,7 @@ async function verifyToken(token) {
     try {
         const response = await fetch('https://mirpass-api.puppygoapp.com/token/verify', {
             method: 'POST',
-            body: JSON.stringify({token: token}),
+            body: JSON.stringify({ token: token }),
         });
 
         if (!response.ok) {
@@ -238,7 +239,7 @@ app.post('/sync', async (req, res) => {
         return res.status(503).json({ error: "Sync service unavailable (DB not configured)" });
     }
 
-    const { token, timestamp, data } = req.body;
+    const { token, timestamp, data, lastSynced, force } = req.body;
 
     if (!token || !timestamp || !data) {
         return res.status(400).json({ error: "Missing required fields (token, timestamp, data)" });
@@ -265,6 +266,27 @@ app.post('/sync', async (req, res) => {
         const serverRow = rows[0];
         const serverTimestamp = Number(serverRow.last_modified);
         const clientTimestamp = Number(timestamp);
+        const lastSyncedTimestamp = Number(lastSynced || 0);
+
+        // Force update (Client overwrites Server)
+        if (force) {
+            await pool.execute(
+                'UPDATE user_data SET last_modified = ?, data = ? WHERE username = ?',
+                [clientTimestamp, data, username]
+            );
+            return res.json({ status: "Server updated (force)" });
+        }
+
+        // Conflict Detection
+        if (serverTimestamp > lastSyncedTimestamp && clientTimestamp > lastSyncedTimestamp) {
+            if (serverTimestamp !== clientTimestamp) {
+                return res.status(200).json({
+                    status: "conflict",
+                    data: serverRow.data,
+                    timestamp: serverTimestamp
+                });
+            }
+        }
 
         if (clientTimestamp > serverTimestamp) {
             // Client is newer, update server
