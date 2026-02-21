@@ -4,11 +4,7 @@ A modern, AI-powered vocabulary learning application built with React 19, TypeSc
 
 Experience now on https://mirpri.github.io/neonvocab
 
-![Screenshot](res/screenshot1.png)
-
-Built with the help of
-
-![Google Ai Studio](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
+![Screenshot](res/screenshot2.jpg)
 
 ## ✨ Features
 
@@ -29,7 +25,9 @@ Built with the help of
   - Track your daily streak.
   - Monitor learning velocity (words/minute).
   - Visualize total words mastered and days active.
-- **💾 Local Persistence**: All your words, progress, and settings are saved automatically to your browser.
+- **☁️ Local & Sync**:
+  - All your words, progress, and settings are saved automatically to your browser.
+  - You can log in to sync your process! (✨New, server required)
 
 ## 🛠️ Tech Stack
 
@@ -46,21 +44,20 @@ Built with the help of
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- A Google Gemini API Key (Get one [here](https://aistudio.google.com/app/apikey))
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/vocabmaster-ai.git
-   cd vocabmaster-ai
+   git clone https://github.com/mirpri/neonvocab.git
+   cd neonvocab
    ```
 
 2. **Install dependencies**
    ```bash
    npm install
    # or
-   yarn install
+   yarn
    ```
 
 3. **Configure Environment**
