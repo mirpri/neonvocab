@@ -1,4 +1,3 @@
-
 export interface TokenResponse {
     access_token: string;
     token_type: string;
@@ -21,14 +20,14 @@ export async function exchangeCodeForToken(
     const response = await fetch(`${API_BASE_URL}/oauth2/token`, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({
+        body: new URLSearchParams({
             grant_type: "authorization_code",
             client_id: "Zm0kyCXZ4pSr-be6TZAhj",
             code,
             code_verifier: verifier,
-        }),
+        }).toString(),
     });
 
     if (!response.ok) {
