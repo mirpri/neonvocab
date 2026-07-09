@@ -11,7 +11,7 @@ export interface UserInfo {
     avatarUrl: string;
 }
 
-const API_BASE_URL = "https://mirpass-api.puppygoapp.com";
+const API_BASE_URL = "https://api.pass.mirpri.com";
 
 export async function exchangeCodeForToken(
     code: string,

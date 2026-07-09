@@ -13,6 +13,8 @@ import Flipper from "./components/Flipper";
 import { LogOut } from "lucide-react";
 import { fetchWordDefinition } from "./services/ai";
 import { useVocabStore, selectActiveWordlist } from "./store/vocabStore";
+import { useUserStore } from "./store/userStore";
+import { autoSync } from "./services/sync";
 import Importer from "./components/Importer";
 
 // Flipper moved to ./components/Flipper
@@ -168,6 +170,34 @@ function App() {
       cancelled = true;
     };
   }, [backgroundEnabled, backgroundUrl]);
+
+  // --- Automatic cloud sync ---
+  const accessToken = useUserStore((s) => s.accessToken);
+  const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+
+  // Pull/reconcile once whenever we become authenticated (login or app load
+  // while logged in). Empty-local conflicts auto-resolve to a pull inside
+  // autoSync, so this never prompts.
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
+    autoSync(accessToken);
+  }, [isAuthenticated, accessToken]);
+
+  // Debounced push after local changes so progress lands in the cloud without
+  // the user pressing "Sync".
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribe = useVocabStore.subscribe((state, prev) => {
+      if (state.lastModified === prev.lastModified) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => autoSync(accessToken), 2500);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [isAuthenticated, accessToken]);
 
   // Queue Management
   useEffect(() => {

@@ -106,7 +106,7 @@ const NavBar: React.FC<NavBarProps> = ({
       code_challenge_method: "S256"
     });
     window.location.href =
-      `https://mirpass-api.puppygoapp.com/oauth2/authorize?${params.toString()}`;
+      `https://api.pass.mirpri.com/oauth2/authorize?${params.toString()}`;
   }
 
   return (

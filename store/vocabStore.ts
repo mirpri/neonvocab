@@ -109,11 +109,17 @@ const getInitialPersistedSlice = (): PersistedSlice => {
 
     let wordlists = ensureNonEmptyWordlists(undefined);
     let activeWordlistId = wordlists[0].id;
+    // Whether we actually restored/migrated any pre-existing data. A truly
+    // fresh store must start with lastModified: 0 so that logging into an
+    // existing account pulls server data instead of registering a false
+    // "conflict" (local looks modified-since-never-synced otherwise).
+    let hasSavedData = false;
 
     if (savedWordlists) {
       try {
         const parsed: WordList[] = JSON.parse(savedWordlists);
         wordlists = ensureNonEmptyWordlists(parsed);
+        hasSavedData = wordlists.some((wl) => (wl.words?.length ?? 0) > 0);
         activeWordlistId =
           savedActiveWordlistId && wordlists.some((wl) => wl.id === savedActiveWordlistId)
             ? savedActiveWordlistId
@@ -126,6 +132,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       try {
         const legacyWords: WordItem[] = JSON.parse(savedWords);
         wordlists = [{ id: "default", name: "Default", words: legacyWords }];
+        hasSavedData = legacyWords.length > 0;
         activeWordlistId = "default";
       } catch {
         wordlists = ensureNonEmptyWordlists(undefined);
@@ -145,6 +152,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
           sessionWordsCorrect: 0,
           sessionWordsTried: 0,
         };
+        if (stats.streak > 0 || stats.totalWordsLearned > 0) hasSavedData = true;
       } catch {
         // ignore
       }
@@ -154,6 +162,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
     if (savedDaily) {
       try {
         dailyStats = JSON.parse(savedDaily);
+        if (dailyStats && Object.keys(dailyStats).length > 0) hasSavedData = true;
       } catch {
         // ignore
       }
@@ -168,7 +177,8 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       definitionCache: {},
       lastSessionGoal: null,
       dailyChallengeScores: {},
-      lastModified: Date.now(),
+      // Fresh store => 0 so first sync after login pulls from the account.
+      lastModified: hasSavedData ? Date.now() : 0,
       lastSyncTime: 0,
     };
   } catch {
@@ -182,7 +192,7 @@ const getInitialPersistedSlice = (): PersistedSlice => {
       definitionCache: {},
       lastSessionGoal: null,
       dailyChallengeScores: {},
-      lastModified: Date.now(),
+      lastModified: 0,
       lastSyncTime: 0,
     };
   }

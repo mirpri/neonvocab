@@ -52,8 +52,8 @@ const fetchGeminiDefinition = async (word) => {
         baseUrl: process.env.GEMINI_BASE_URL
     });
 
-    const prompt = `Provide a dictionary definition for the word "${word}". 
-    The definition should be clear and concise, suitable for a vocabulary learner. 
+    const prompt = `Provide a dictionary definition for the word "${word}".
+    The definition should be clear and concise, suitable for a vocabulary learner.
     Also provide the part of speech and a short example sentence using the word (but replace the target word with '_____' in the sentence).`;
 
     const response = await genAI.models.generateContent({
@@ -86,7 +86,7 @@ const fetchOpenAIDefinition = async (word) => {
 
     if (!apiKey) throw new Error("OPENAI_API_KEY missing");
 
-    const prompt = `Provide a JSON object with a dictionary definition for the word "${word}". 
+    const prompt = `Provide a JSON object with a dictionary definition for the word "${word}".
     Fields: "definition" (concise), "partOfSpeech", "exampleSentence" (replace word with '_____').`;
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -215,7 +215,7 @@ async function initMySQL() {
 
 async function verifyToken(token) {
     try {
-        const response = await fetch('https://mirpass-api.puppygoapp.com/token/verify', {
+        const response = await fetch('https://api.pass.mirpri.com/token/verify', {
             method: 'POST',
             body: JSON.stringify({ token: token }),
         });
@@ -241,7 +241,9 @@ app.post('/sync', async (req, res) => {
 
     const { token, timestamp, data, lastSynced, force } = req.body;
 
-    if (!token || !timestamp || !data) {
+    // timestamp may legitimately be 0 (a fresh client that has never modified
+    // anything, syncing purely to PULL server data), so don't reject falsy 0.
+    if (!token || timestamp === undefined || timestamp === null || !data) {
         return res.status(400).json({ error: "Missing required fields (token, timestamp, data)" });
     }
 
