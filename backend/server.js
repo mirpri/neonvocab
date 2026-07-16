@@ -311,6 +311,11 @@ app.post('/sync', async (req, res) => {
 
     } catch (error) {
         console.error("Sync Error:", error);
+        // verifyToken throws when the upstream auth API rejects the token.
+        // Surface that as a 401 so the frontend can log the user out.
+        if (error.message && error.message.includes('Token verification failed')) {
+            return res.status(401).json({ error: "token_expired" });
+        }
         res.status(500).json({ error: "Internal Server Error during sync" });
     }
 });

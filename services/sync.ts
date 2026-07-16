@@ -1,6 +1,7 @@
 
 import { config } from "@/config";
 import { useVocabStore } from "../store/vocabStore";
+import { useUserStore } from "../store/userStore";
 
 const SYNC_ENDPOINT = config.apiBaseUrl + "/sync";
 
@@ -61,6 +62,13 @@ export async function syncData(accessToken: string, force = false): Promise<Sync
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error === 'token_expired') {
+                    useUserStore.getState().logout();
+                    return { status: 'error', message: 'Session expired — please log in again' };
+                }
+            }
             throw new Error(`Sync failed: ${response.statusText}`);
         }
 
