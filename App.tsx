@@ -14,7 +14,7 @@ import { LogOut } from "lucide-react";
 import { fetchWordDefinition } from "./services/ai";
 import { useVocabStore, selectActiveWordlist } from "./store/vocabStore";
 import { useUserStore } from "./store/userStore";
-import { autoSync } from "./services/sync";
+import { autoSync, syncData } from "./services/sync";
 import Importer from "./components/Importer";
 
 // Flipper moved to ./components/Flipper
@@ -183,20 +183,15 @@ function App() {
     autoSync(accessToken);
   }, [isAuthenticated, accessToken]);
 
-  // Debounced push after local changes so progress lands in the cloud without
-  // the user pressing "Sync".
+  // Sync on leaving the page (tab close, navigate away, refresh).
+  // Uses fetch with keepalive so the request survives page unload.
   useEffect(() => {
     if (!isAuthenticated || !accessToken) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribe = useVocabStore.subscribe((state, prev) => {
-      if (state.lastModified === prev.lastModified) return;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => autoSync(accessToken), 2500);
-    });
-    return () => {
-      if (timer) clearTimeout(timer);
-      unsubscribe();
+    const handleBeforeUnload = () => {
+      syncData(accessToken, false, { keepalive: true }).catch(() => {});
     };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isAuthenticated, accessToken]);
 
   // Queue Management

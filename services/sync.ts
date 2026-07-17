@@ -27,7 +27,7 @@ export function hasLocalData(): boolean {
     return Boolean(anyWords || anyDaily || anyStats || anyChallenge);
 }
 
-export async function syncData(accessToken: string, force = false): Promise<SyncResult> {
+export async function syncData(accessToken: string, force = false, options?: { keepalive?: boolean }): Promise<SyncResult> {
     const store = useVocabStore.getState();
 
     // We only need to persist the 'persisted' parts of the store.
@@ -59,6 +59,7 @@ export async function syncData(accessToken: string, force = false): Promise<Sync
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
+            keepalive: options?.keepalive ?? false,
         });
 
         if (!response.ok) {
@@ -117,11 +118,11 @@ export async function syncData(accessToken: string, force = false): Promise<Sync
  */
 let autoInFlight = false;
 
-export async function autoSync(accessToken: string | null | undefined): Promise<SyncResult | null> {
+export async function autoSync(accessToken: string | null | undefined, options?: { keepalive?: boolean }): Promise<SyncResult | null> {
     if (!accessToken || autoInFlight) return null;
     autoInFlight = true;
     try {
-        return await syncData(accessToken);
+        return await syncData(accessToken, false, options);
     } finally {
         autoInFlight = false;
     }
