@@ -5,4 +5,4 @@
 # OPENAI_MODEL=deepseek/deepseek-v3.2
 # 
 AI_PROVIDER=proxy
-VITE_API_BASE_URL=https://nvapis.puppygoapp.com
+VITE_API_BASE_URL=https://nvapis.mirpri.com

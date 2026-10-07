@@ -1,7 +1,7 @@
 
 export const config = {
   // Optional: Custom Backend URL (overrides provider choice if set)
-  apiBaseUrl: process.env.VITE_API_BASE_URL || 'https://nvapis.puppygoapp.com',
+  apiBaseUrl: process.env.VITE_API_BASE_URL || 'https://nvapis.mirpri.com',
 
   // Provider choice: 'gemini' | 'openai' | 'proxy'
   provider: (process.env.AI_PROVIDER as 'gemini' | 'openai' | 'proxy') || 'proxy',
